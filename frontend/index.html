@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>CloudPix — Serverless Image Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="CloudPix home"><span class="brand-mark">✦</span><span>CloudPix</span></a>
+      <div class="side-label">WORKSPACE</div>
+      <a class="nav-link active" href="#upload">▦ <span>Image studio</span></a>
+      <a class="nav-link" href="#history">◷ <span>Processing history</span></a>
+      <div class="sidebar-bottom"><span class="status-dot"></span><div><strong>Serverless workspace</strong><small>Secure cloud storage</small></div></div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div><div class="eyebrow">IMAGE WORKSPACE</div><h1>Image studio</h1><p class="subhead">Upload once. Let the cloud handle the rest.</p></div>
+        <div class="cloud-badge"><span>●</span> AWS serverless</div>
+      </header>
+      <section class="stats-grid" aria-label="Processing overview">
+        <article class="stat-card"><span class="stat-icon violet">▧</span><div><p>Total images</p><strong id="total-count">—</strong></div></article>
+        <article class="stat-card"><span class="stat-icon amber">◷</span><div><p>In progress</p><strong id="pending-count">—</strong></div></article>
+        <article class="stat-card"><span class="stat-icon green">✓</span><div><p>Completed</p><strong id="completed-count">—</strong></div></article>
+        <article class="stat-card"><span class="stat-icon red">!</span><div><p>Failed</p><strong id="failed-count">—</strong></div></article>
+      </section>
+      <section class="panel upload-panel" id="upload">
+        <div class="section-heading"><div><h2>Upload an image</h2><p>Originals are stored privately and processed automatically.</p></div><span class="step-chip">01 / UPLOAD</span></div>
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose or drop an image">
+          <div class="upload-symbol">↑</div><h3>Drop your image here</h3><p>or choose a file from your device</p>
+          <button type="button" class="button button-secondary" id="choose-btn">Choose image</button>
+          <div class="file-rules">JPG, JPEG or PNG <span>•</span> Maximum 10 MB</div>
+          <input type="file" id="file-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
+        </div>
+        <div class="selected-file" id="selected-file" hidden>
+          <img id="preview" alt="Selected image preview">
+          <div class="selected-meta"><strong id="selected-name"></strong><span id="selected-size"></span><div class="progress-track"><div id="upload-progress"></div></div><small id="upload-message">Ready to upload</small></div>
+          <button type="button" class="icon-button" id="remove-btn" aria-label="Remove selected image">×</button>
+        </div>
+        <div class="upload-actions"><p>Images are validated before upload. Processing runs asynchronously.</p><button class="button button-primary" id="upload-btn" disabled>Upload &amp; process <span>↗</span></button></div>
+      </section>
+      <section class="panel results-panel">
+        <div class="section-heading"><div><h2>Latest result</h2><p>Your original, optimized image and thumbnail.</p></div><button class="button button-ghost" id="refresh-btn">↻ Refresh</button></div>
+        <div id="latest-result" class="empty-state"><div class="empty-art">▧</div><strong>No image selected yet</strong><p>Upload an image to see its processing results here.</p></div>
+      </section>
+      <section class="panel history-panel" id="history">
+        <div class="section-heading"><div><h2>Processing history</h2><p>Recent uploads and their live processing status.</p></div><span class="step-chip">ACTIVITY</span></div>
+        <div class="table-wrap"><table><thead><tr><th>IMAGE</th><th>UPLOADED</th><th>STATUS</th><th>OUTPUTS</th></tr></thead><tbody id="history-body"><tr><td colspan="4" class="table-empty">Configure the API endpoint to load your history.</td></tr></tbody></table></div>
+      </section>
+      <footer>CloudPix <span>•</span> Serverless Image Processing &amp; Storage Platform</footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

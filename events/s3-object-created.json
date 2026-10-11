@@ -1,0 +1,24 @@
+{
+  "version": "0",
+  "id": "example-event-id",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "000000000000",
+  "time": "2026-10-10T12:00:00Z",
+  "region": "ap-south-1",
+  "resources": ["arn:aws:s3:::REPLACE_WITH_DEPLOYED_BUCKET"],
+  "detail": {
+    "bucket": {
+      "name": "REPLACE_WITH_DEPLOYED_BUCKET"
+    },
+    "object": {
+      "key": "originals/REPLACE_WITH_IMAGE_UUID.jpg",
+      "size": 12345
+    },
+    "reason": "PutObject",
+    "deletion-type": "",
+    "request-id": "example-request-id",
+    "source-ip-address": "127.0.0.1",
+    "version-id": ""
+  }
+}

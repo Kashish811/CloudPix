@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudPix - private serverless image processing platform
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: '*'
+    Description: Frontend origin for API CORS (use your exact hosted origin for production).
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 512
+    Architectures: [x86_64]
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref ImagesTable
+        BUCKET_NAME: !Ref ImagesBucket
+        MAX_UPLOAD_BYTES: '10485760'
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
+
+Resources:
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: [!Ref AllowedOrigin]
+            AllowedMethods: [PUT, GET, HEAD]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      # EventBridge avoids the common S3-notification/Lambda circular dependency
+      # in a single CloudFormation/SAM template.
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+
+  ImagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: image_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: image_id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+
+  CloudPixApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: !Sub "'${AllowedOrigin}'"
+
+  UploadHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: upload_handler.app.lambda_handler
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref ImagesBucket
+        - S3ReadPolicy:
+            BucketName: !Ref ImagesBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ImagesTable
+      Events:
+        CreateUpload:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPixApi
+            Path: /uploads
+            Method: post
+        ListHistory:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPixApi
+            Path: /history
+            Method: get
+        GetStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPixApi
+            Path: /images/{image_id}
+            Method: get
+
+  ImageProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: image_processor.app.lambda_handler
+      Timeout: 60
+      MemorySize: 1024
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ImagesBucket
+        - S3WritePolicy:
+            BucketName: !Ref ImagesBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ImagesTable
+      Events:
+        OriginalImageCreated:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref ImagesBucket
+                object:
+                  key:
+                    - prefix: originals/
+
+Outputs:
+  ApiBaseUrl:
+    Description: CloudPix API base URL
+    Value: !Sub 'https://${CloudPixApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+  ImagesBucketName:
+    Value: !Ref ImagesBucket
+  ImagesTableName:
+    Value: !Ref ImagesTable
