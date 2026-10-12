@@ -8,8 +8,13 @@ from urllib.parse import unquote_plus
 import boto3
 from botocore.exceptions import ClientError
 
+
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
-s3 = boto3.client("s3", region_name=AWS_REGION)
+s3 = boto3.client(
+    "s3",
+    region_name=AWS_REGION,
+    endpoint_url=f"https://s3.{AWS_REGION}.amazonaws.com",
+)
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 TABLE = dynamodb.Table(os.environ.get("TABLE_NAME", "cloudpix-local-test"))
 BUCKET = os.environ.get("BUCKET_NAME", "cloudpix-local-test")
@@ -27,7 +32,7 @@ def response(status, body):
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
             "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
         },
-        "body": json.dumps(body),
+        "body": json.dumps(body, default=str),
     }
 
 
@@ -58,7 +63,8 @@ def lambda_handler(event, context):
     except (ValueError, json.JSONDecodeError) as exc:
         return response(400, {"error": str(exc)})
     except Exception:
-        print("Unhandled API error")
+        import traceback
+        traceback.print_exc()
         return response(500, {"error": "Request failed. Check CloudWatch logs."})
 
 
