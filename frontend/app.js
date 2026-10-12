@@ -16,7 +16,7 @@ function setApiBase() {
   const value = window.prompt("Enter the CloudPix API base URL from the SAM deployment output (ends in /prod):", current);
   if (value === null) return;
   const cleaned = value.trim().replace(/\/+$/, "");
-  if (cleaned && !/^https:\/\/[a-z0-9-]+\.execute-api\.[a-z0-9-]+\./i.test(cleaned)) {
+  if (cleaned && !(/^https:\/\/[a-z0-9-]+\.execute-api\.[a-z0-9-]+\.amazonaws\.com/i.test(cleaned) || /^http:\/\/(127\.0\.0\.1|localhost):3000$/i.test(cleaned))) {
     notify("Enter the HTTPS API Gateway URL from the deployment output.", true);
     return;
   }
