@@ -67,7 +67,7 @@ Resources:
     Properties:
       StageName: prod
       Cors:
-        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
         AllowOrigin: !Sub "'${AllowedOrigin}'"
 
@@ -77,9 +77,7 @@ Resources:
       CodeUri: backend/
       Handler: upload_handler.app.lambda_handler
       Policies:
-        - S3WritePolicy:
-            BucketName: !Ref ImagesBucket
-        - S3ReadPolicy:
+        - S3CrudPolicy:
             BucketName: !Ref ImagesBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref ImagesTable
@@ -102,6 +100,12 @@ Resources:
             RestApiId: !Ref CloudPixApi
             Path: /images/{image_id}
             Method: get
+        DeleteImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPixApi
+            Path: /images/{image_id}
+            Method: delete
 
   ImageProcessor:
     Type: AWS::Serverless::Function
