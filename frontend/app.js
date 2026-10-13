@@ -1,1740 +1,643 @@
 /* =========================================================
    CLOUDPIX — SERVERLESS IMAGE STUDIO
-   Complete application stylesheet
+   Complete frontend application
 ========================================================= */
 
-/* -------------------------
-   Design tokens
-------------------------- */
-
-:root {
-  color-scheme: light;
-
-  --page-bg: #f7f7fc;
-  --surface: #ffffff;
-  --surface-soft: #fbfaff;
-  --surface-muted: #f5f4fb;
-
-  --ink: #25243b;
-  --ink-soft: #56566f;
-  --muted: #85859d;
-  --muted-light: #a4a4b8;
-
-  --purple: #7160e8;
-  --purple-dark: #5542cf;
-  --purple-light: #f0edff;
-  --purple-border: #ded8ff;
-
-  --blue: #4b83ed;
-  --blue-light: #edf4ff;
-
-  --green: #20a779;
-  --green-light: #e9f9f2;
-
-  --amber: #d99a25;
-  --amber-light: #fff6e5;
-
-  --red: #d95b68;
-  --red-light: #fff0f1;
-
-  --line: #eeedf5;
-  --line-dark: #e3e1ee;
-
-  --shadow-sm:
-    0 2px 8px rgba(37, 36, 59, 0.025);
-
-  --shadow-md:
-    0 8px 28px rgba(37, 36, 59, 0.045);
-
-  --shadow-purple:
-    0 8px 22px rgba(113, 96, 232, 0.2);
-
-  --radius-sm: 9px;
-  --radius-md: 14px;
-  --radius-lg: 19px;
-  --radius-xl: 24px;
-
-  --sidebar-width: 250px;
-
-  --transition:
-    180ms ease;
-
-  --font-body:
-    "DM Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-
-  --font-heading:
-    "Manrope",
-    "DM Sans",
-    sans-serif;
-}
-
-
-/* -------------------------
-   Reset and base
-------------------------- */
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 95px;
-}
-
-body {
-  margin: 0;
-
-  background: var(--page-bg);
-  color: var(--ink);
-
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.5;
-
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-
-  transition:
-    background var(--transition),
-    color var(--transition);
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button,
-select {
-  -webkit-tap-highlight-color: transparent;
-}
-
-button {
-  color: inherit;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-[tabindex]:focus-visible {
-  outline: 3px solid rgba(113, 96, 232, 0.35);
-  outline-offset: 3px;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-img,
-svg {
-  display: block;
-}
-
-svg {
-  width: 18px;
-  height: 18px;
-
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-
-  flex-shrink: 0;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-::selection {
-  background: #e1dcff;
-  color: #3d2d9c;
-}
+"use strict";
 
 
 /* =========================================================
-   APPLICATION SHELL
+   CONFIGURATION
 ========================================================= */
 
-.app-shell {
-  min-height: 100vh;
-}
+const API_STORAGE_KEY = "cloudpix_api_base";
+const THEME_STORAGE_KEY = "cloudpix_theme";
+const VIEW_STORAGE_KEY = "cloudpix_history_view";
+
+const MAX_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png"
+];
+
+const ALLOWED_EXTENSIONS = [
+  "jpg",
+  "jpeg",
+  "png"
+];
+
+const TERMINAL_STATUSES = [
+  "Completed",
+  "Failed"
+];
+
+const POLL_INTERVAL_MS = 2500;
+const MAX_POLL_ATTEMPTS = 30;
+
+const $ = (id) => document.getElementById(id);
 
 
 /* =========================================================
-   SIDEBAR
+   APPLICATION STATE
 ========================================================= */
 
-.sidebar {
-  position: fixed;
-  z-index: 20;
+let uploadQueue = [];
+let allHistoryItems = [];
 
-  inset: 0 auto 0 0;
+let latestImageId = null;
+let currentDetailImageId = null;
 
-  width: var(--sidebar-width);
+let historySearch = "";
+let historyStatus = "All";
+let historySort = "newest";
+let historyView = "table";
 
-  display: flex;
-  flex-direction: column;
+let isUploading = false;
 
-  padding: 28px 19px 17px;
+let pollTimers = new Map();
 
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-
-  overflow-y: auto;
-}
-
-
-/* Brand */
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  padding: 0 5px 31px;
-}
-
-.brand-mark {
-  width: 38px;
-  height: 38px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-}
-
-.brand-mark svg {
-  width: 38px;
-  height: 38px;
-
-  stroke: none;
-}
-
-.brand-copy h1 {
-  margin: 0;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-
-  line-height: 1.2;
-}
-
-.brand-copy span {
-  display: block;
-
-  margin-top: 4px;
-
-  color: var(--muted);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1.05px;
-}
-
-
-/* Sidebar sections */
-
-.sidebar-section {
-  margin-bottom: 29px;
-}
-
-.sidebar-label {
-  margin: 0 0 12px 10px;
-
-  color: var(--muted-light);
-
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.15px;
-}
-
-
-/* Navigation */
-
-.sidebar-nav {
-  display: grid;
-  gap: 5px;
-}
-
-.nav-item {
-  position: relative;
-
-  min-height: 43px;
-
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  padding: 0 12px;
-
-  border: 1px solid transparent;
-  border-radius: 10px;
-
-  color: var(--ink-soft);
-
-  font-size: 12px;
-  font-weight: 600;
-
-  transition:
-    color var(--transition),
-    background var(--transition),
-    border-color var(--transition);
-}
-
-.nav-item:hover {
-  background: var(--surface-muted);
-  color: var(--purple-dark);
-}
-
-.nav-item.active {
-  background: var(--purple-light);
-  border-color: #e8e3ff;
-
-  color: var(--purple-dark);
-  font-weight: 700;
-}
-
-.nav-icon {
-  width: 20px;
-  height: 20px;
-
-  display: grid;
-  place-items: center;
-}
-
-.nav-icon svg {
-  width: 17px;
-  height: 17px;
-}
-
-.nav-indicator {
-  width: 5px;
-  height: 5px;
-
-  margin-left: auto;
-
-  border-radius: 50%;
-  background: transparent;
-}
-
-.nav-item.active .nav-indicator {
-  background: var(--purple);
-}
-
-
-/* Sidebar feature list */
-
-.sidebar-feature {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-
-  padding: 10px 10px;
-
-  border-radius: 10px;
-
-  transition: background var(--transition);
-}
-
-.sidebar-feature:hover {
-  background: var(--surface-soft);
-}
-
-.feature-dot {
-  width: 8px;
-  height: 8px;
-
-  margin-top: 5px;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-  background: var(--purple);
-  box-shadow: 0 0 0 4px var(--purple-light);
-}
-
-.feature-dot-blue {
-  background: var(--blue);
-  box-shadow: 0 0 0 4px var(--blue-light);
-}
-
-.feature-dot-green {
-  background: var(--green);
-  box-shadow: 0 0 0 4px var(--green-light);
-}
-
-.sidebar-feature strong {
-  display: block;
-
-  color: var(--ink-soft);
-
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.sidebar-feature small {
-  display: block;
-
-  margin-top: 3px;
-
-  color: var(--muted);
-  font-size: 10px;
-}
-
-
-/* Sidebar bottom */
-
-.sidebar-bottom {
-  margin-top: auto;
-  padding-top: 15px;
-}
-
-.sidebar-info-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-
-  padding: 13px 11px;
-
-  border: 1px solid var(--line);
-  border-radius: 12px;
-
-  background: var(--surface-soft);
-}
-
-.sidebar-info-icon {
-  width: 29px;
-  height: 29px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-
-  border-radius: 9px;
-
-  background: var(--purple-light);
-  color: var(--purple);
-}
-
-.sidebar-info-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.sidebar-info-card strong {
-  display: block;
-
-  margin-bottom: 4px;
-
-  color: var(--ink);
-
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.sidebar-info-card p {
-  margin: 0;
-
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.6;
-}
-
-.sidebar-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-
-  padding: 19px 4px 0;
-
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.sidebar-footer span:first-child {
-  color: var(--ink-soft);
-  font-weight: 800;
-}
+let toastTimer = null;
+let refreshInProgress = false;
 
 
 /* =========================================================
-   MAIN CONTENT AND TOP BAR
+   API CONFIGURATION
 ========================================================= */
 
-.main-content {
-  min-width: 0;
-  min-height: 100vh;
-
-  margin-left: var(--sidebar-width);
-}
-
-.topbar {
-  position: sticky;
-  z-index: 15;
-  top: 0;
-
-  min-height: 69px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-
-  padding: 13px 38px;
-
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.breadcrumb-divider {
-  color: var(--line-dark);
-}
-
-.breadcrumb strong {
-  color: var(--ink-soft);
-  font-weight: 700;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+function apiBase() {
+  try {
+    return (localStorage.getItem(API_STORAGE_KEY) || "")
+      .trim()
+      .replace(/\/+$/, "");
+  } catch (_) {
+    return "";
+  }
 }
 
 
-/* AWS badge */
+function isValidApiBase(value) {
+  if (!value) {
+    return true;
+  }
 
-.cloud-badge {
-  min-height: 35px;
+  try {
+    const url = new URL(value);
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+    const isLocal =
+      (
+        url.hostname === "localhost" ||
+        url.hostname === "127.0.0.1"
+      ) &&
+      url.protocol === "http:" &&
+      url.port === "3000";
 
-  padding: 0 12px;
+    const isApiGateway =
+      url.protocol === "https:" &&
+      /^[a-z0-9-]+\.execute-api\.[a-z0-9-]+\.amazonaws\.com$/i
+        .test(url.hostname);
 
-  border: 1px solid #e6e1ff;
-  border-radius: 9px;
+    return isLocal || isApiGateway;
 
-  background: var(--purple-light);
-  color: var(--purple-dark);
-
-  cursor: pointer;
-
-  font-size: 10px;
-  font-weight: 700;
-
-  transition:
-    transform var(--transition),
-    background var(--transition),
-    border-color var(--transition);
-}
-
-.cloud-badge:hover {
-  transform: translateY(-1px);
-
-  background: #e9e4ff;
-  border-color: #d7ceff;
-}
-
-.cloud-badge-dot {
-  width: 7px;
-  height: 7px;
-
-  border-radius: 50%;
-
-  background: var(--green);
-  box-shadow: 0 0 0 3px rgba(32, 167, 121, 0.12);
-}
-
-.cloud-badge svg {
-  width: 12px;
-  height: 12px;
+  } catch (_) {
+    return false;
+  }
 }
 
 
-/* Icon buttons */
-
-.icon-button {
-  width: 37px;
-  height: 37px;
-
-  display: inline-grid;
-  place-items: center;
-
-  padding: 0;
-
-  border: 1px solid var(--line-dark);
-  border-radius: 10px;
-
-  background: var(--surface);
-  color: var(--ink-soft);
-
-  cursor: pointer;
-
-  transition:
-    color var(--transition),
-    border-color var(--transition),
-    background var(--transition),
-    transform var(--transition);
-}
-
-.icon-button:hover {
-  border-color: var(--purple-border);
-
-  background: var(--purple-light);
-  color: var(--purple-dark);
-
-  transform: translateY(-1px);
-}
-
-.icon-button svg {
-  width: 17px;
-  height: 17px;
-}
-
-.theme-icon {
-  width: 17px;
-  height: 17px;
-}
-
-.theme-icon-moon {
-  display: none;
-}
-
-
-/* Profile */
-
-.profile-avatar {
-  width: 35px;
-  height: 35px;
-
-  display: grid;
-  place-items: center;
-
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-
-  background: linear-gradient(135deg, #d9d2ff, #a79bff);
-
-  color: #4536a7;
-
-  font-family: var(--font-heading);
-  font-size: 10px;
-  font-weight: 800;
-
-  box-shadow: 0 0 0 1px var(--purple-border);
-}
-
-
-/* =========================================================
-   PAGE CONTENT
-========================================================= */
-
-.page-content {
-  width: 100%;
-  max-width: 1600px;
-
-  margin: 0 auto;
-  padding: 31px 38px 20px;
-}
-
-
-/* =========================================================
-   PAGE INTRODUCTION
-========================================================= */
-
-.page-heading {
-  position: relative;
-
-  min-height: 195px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 30px;
-
-  margin-bottom: 23px;
-  padding: 8px 8px 12px;
-}
-
-.page-heading-copy {
-  position: relative;
-  z-index: 2;
-
-  max-width: 570px;
-}
-
-.eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-
-  margin-bottom: 15px;
-
-  color: var(--purple);
-
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.35px;
-}
-
-.eyebrow-line {
-  width: 23px;
-  height: 2px;
-
-  border-radius: 5px;
-  background: var(--purple);
-}
-
-.page-heading h2 {
-  margin: 0;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: clamp(29px, 3vw, 39px);
-  font-weight: 800;
-  letter-spacing: -1.6px;
-
-  line-height: 1.2;
-}
-
-.page-heading h2 span {
-  color: var(--purple);
-}
-
-.page-heading-copy > p {
-  max-width: 535px;
-
-  margin: 13px 0 0;
-
-  color: var(--muted);
-
-  font-size: 12px;
-  line-height: 1.85;
-}
-
-
-/* Hero illustration */
-
-.page-heading-visual {
-  position: relative;
-
-  width: 245px;
-  height: 180px;
-
-  flex-shrink: 0;
-}
-
-.visual-orbit {
-  position: absolute;
-
-  border: 1px dashed rgba(113, 96, 232, 0.22);
-  border-radius: 50%;
-
-  transform: rotate(-23deg);
-}
-
-.orbit-one {
-  inset: 9px 6px;
-}
-
-.orbit-two {
-  inset: 24px -8px;
-
-  border-color: rgba(113, 96, 232, 0.12);
-
-  transform: rotate(32deg);
-}
-
-.visual-image-card {
-  position: absolute;
-
-  overflow: hidden;
-
-  border: 1px solid rgba(113, 96, 232, 0.16);
-  border-radius: 16px;
-
-  background: var(--surface);
-
-  box-shadow: var(--shadow-md);
-}
-
-.visual-card-back {
-  top: 28px;
-  left: 58px;
-
-  width: 106px;
-  height: 105px;
-
-  transform: rotate(-10deg);
-}
-
-.visual-image-placeholder {
-  width: 100%;
-  height: 100%;
-
-  background:
-    radial-gradient(circle at 72% 27%, #f7ce77 0 8%, transparent 9%),
-    linear-gradient(145deg, #eeeaff 0%, #ddd7ff 45%, #b6aaff 100%);
-}
-
-.visual-card-front {
-  top: 31px;
-  left: 91px;
-
-  width: 105px;
-
-  padding: 8px;
-
-  transform: rotate(6deg);
-}
-
-.visual-image-art {
-  overflow: hidden;
-
-  border-radius: 10px;
-}
-
-.visual-image-art svg {
-  width: 100%;
-  height: auto;
-
-  stroke: none;
-}
-
-.visual-image-caption {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-
-  padding: 8px 1px 2px;
-
-  color: var(--ink-soft);
-
-  font-size: 8px;
-  font-weight: 700;
-}
-
-.visual-status-dot {
-  width: 6px;
-  height: 6px;
-
-  border-radius: 50%;
-  background: var(--green);
-}
-
-.visual-floating-chip {
-  position: absolute;
-  z-index: 2;
-
-  right: -1px;
-  bottom: 23px;
-
-  display: flex;
-  align-items: center;
-  gap: 7px;
-
-  padding: 9px 12px;
-
-  border: 1px solid var(--line);
-  border-radius: 10px;
-
-  background: var(--surface);
-
-  color: var(--ink-soft);
-
-  box-shadow: var(--shadow-md);
-
-  font-size: 9px;
-  font-weight: 700;
-
-  animation: float 4s ease-in-out infinite;
-}
-
-.visual-floating-chip > span {
-  color: var(--purple);
-  font-size: 14px;
-}
-
-
-/* =========================================================
-   STATISTICS
-========================================================= */
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 15px;
-
-  margin-bottom: 23px;
-}
-
-.stat-card {
-  position: relative;
-
-  min-width: 0;
-  min-height: 140px;
-
-  overflow: hidden;
-
-  padding: 19px 18px;
-
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-
-  background: var(--surface);
-
-  box-shadow: var(--shadow-sm);
-
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition),
-    border-color var(--transition);
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-
-  border-color: var(--line-dark);
-
-  box-shadow: var(--shadow-md);
-}
-
-.stat-card-top {
-  position: relative;
-  z-index: 1;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.stat-icon {
-  width: 35px;
-  height: 35px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 10px;
-}
-
-.stat-icon svg {
-  width: 17px;
-  height: 17px;
-}
-
-.stat-icon-purple {
-  background: var(--purple-light);
-  color: var(--purple);
-}
-
-.stat-icon-amber {
-  background: var(--amber-light);
-  color: var(--amber);
-}
-
-.stat-icon-green {
-  background: var(--green-light);
-  color: var(--green);
-}
-
-.stat-icon-red {
-  background: var(--red-light);
-  color: var(--red);
-}
-
-.stat-label {
-  color: var(--muted);
-
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-}
-
-.stat-value {
-  position: relative;
-  z-index: 1;
-
-  margin-top: 15px;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 29px;
-  font-weight: 800;
-  letter-spacing: -1px;
-
-  line-height: 1;
-}
-
-.stat-description {
-  position: relative;
-  z-index: 1;
-
-  margin: 8px 0 0;
-
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.stat-decoration {
-  position: absolute;
-
-  right: -19px;
-  bottom: -28px;
-
-  width: 90px;
-  height: 90px;
-
-  border-radius: 50%;
-
-  opacity: 0.5;
-}
-
-.stat-decoration-purple {
-  background: radial-gradient(
-    circle,
-    rgba(113, 96, 232, 0.13),
-    transparent 70%
+async function setApiBase() {
+  const current = apiBase();
+
+  const value = window.prompt(
+    [
+      "Enter your CloudPix API Gateway base URL.",
+      "",
+      "Example:",
+      "https://your-api-id.execute-api.ap-south-1.amazonaws.com/prod",
+      "",
+      "Use the actual URL supplied by your backend deployment."
+    ].join("\n"),
+    current
   );
+
+  if (value === null) {
+    return;
+  }
+
+  const cleaned = value.trim().replace(/\/+$/, "");
+
+  if (!isValidApiBase(cleaned)) {
+    notify(
+      "Enter a valid AWS API Gateway HTTPS URL or localhost:3000.",
+      true
+    );
+
+    return;
+  }
+
+  try {
+    localStorage.setItem(API_STORAGE_KEY, cleaned);
+  } catch (_) {
+    notify(
+      "Could not save the API endpoint in this browser.",
+      true
+    );
+
+    return;
+  }
+
+  if (!cleaned) {
+    allHistoryItems = [];
+
+    renderHistory();
+    updateStatistics();
+
+    notify("API endpoint cleared.");
+
+    return;
+  }
+
+  notify("API endpoint saved. Checking connection…");
+
+  await refreshAll();
 }
 
-.stat-decoration-amber {
-  background: radial-gradient(
-    circle,
-    rgba(217, 154, 37, 0.14),
-    transparent 70%
-  );
+
+/* Make API requests */
+
+async function api(path, options = {}) {
+  const base = apiBase();
+
+  if (!base) {
+    throw new Error(
+      "API endpoint is not configured. Click the AWS serverless badge to set it."
+    );
+  }
+
+  const response = await fetch(base + path, options);
+
+  let data = {};
+
+  try {
+    data = await response.json();
+  } catch (_) {
+    // The response may not contain JSON.
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      `Request failed with status ${response.status}.`
+    );
+  }
+
+  return data;
 }
 
-.stat-decoration-green {
-  background: radial-gradient(
-    circle,
-    rgba(32, 167, 121, 0.13),
-    transparent 70%
-  );
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+function notify(message, isError = false) {
+  const toast = $("toast");
+
+  if (!toast) {
+    console[isError ? "error" : "log"](message);
+    return;
+  }
+
+  toast.textContent = String(message);
+
+  toast.className =
+    "toast show" + (isError ? " error" : "");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+    toast.className = "toast";
+  }, 4000);
 }
 
-.stat-decoration-red {
-  background: radial-gradient(
-    circle,
-    rgba(217, 91, 104, 0.13),
-    transparent 70%
+
+/* =========================================================
+   FORMATTING HELPERS
+========================================================= */
+
+function formatBytes(bytes) {
+  const value = Number(bytes);
+
+  if (!Number.isFinite(value) || value < 0) {
+    return "—";
+  }
+
+  if (value < 1024) {
+    return `${value} B`;
+  }
+
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(value / 1024 / 1024).toFixed(2)} MB`;
+}
+
+
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (character) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[character]
   );
 }
 
 
 /* =========================================================
-   SHARED PANELS
+   URL SAFETY
 ========================================================= */
 
-.panel {
-  min-width: 0;
+function safeUrl(value) {
+  if (!value) {
+    return "";
+  }
 
-  margin-bottom: 22px;
-  padding: 23px;
+  try {
+    const url = new URL(
+      String(value),
+      window.location.href
+    );
 
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+    const isHttps = url.protocol === "https:";
 
-  background: var(--surface);
+    const isLocalHttp =
+      url.protocol === "http:" &&
+      (
+        url.hostname === "localhost" ||
+        url.hostname === "127.0.0.1"
+      );
 
-  box-shadow: var(--shadow-sm);
+    if (!isHttps && !isLocalHttp) {
+      return "";
+    }
 
-  scroll-margin-top: 90px;
-}
+    return url.href;
 
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-
-  margin-bottom: 22px;
-}
-
-.panel-heading-copy {
-  min-width: 0;
-}
-
-.section-kicker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  margin-bottom: 9px;
-
-  color: var(--purple);
-
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-.section-kicker-number {
-  width: 19px;
-  height: 19px;
-
-  display: inline-grid;
-  place-items: center;
-
-  border-radius: 6px;
-
-  background: var(--purple-light);
-
-  color: var(--purple-dark);
-
-  font-size: 9px;
-}
-
-.panel-heading h3 {
-  margin: 0;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.45px;
-}
-
-.panel-heading-copy > p {
-  margin: 7px 0 0;
-
-  color: var(--muted);
-
-  font-size: 11px;
-  line-height: 1.75;
+  } catch (_) {
+    return "";
+  }
 }
 
 
-/* Security indicator */
+function safeLink(rawUrl, label, className = "") {
+  const url = safeUrl(rawUrl);
 
-.secure-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  if (!url) {
+    return "";
+  }
 
-  flex-shrink: 0;
-
-  padding: 8px 10px;
-
-  border: 1px solid #d9f2e6;
-  border-radius: 8px;
-
-  background: var(--green-light);
-
-  color: #16825d;
-
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.secure-indicator svg {
-  width: 14px;
-  height: 14px;
-}
-
-
-/* Output badge */
-
-.output-format-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-
-  flex-shrink: 0;
-
-  padding: 8px 10px;
-
-  border: 1px solid var(--line);
-  border-radius: 8px;
-
-  background: var(--surface-soft);
-
-  color: var(--muted);
-
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.output-format-dot {
-  width: 6px;
-  height: 6px;
-
-  border-radius: 50%;
-  background: var(--green);
+  return `
+    <a
+      class="${escapeHtml(className)}"
+      href="${escapeHtml(url)}"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      ${escapeHtml(label)}
+    </a>
+  `;
 }
 
 
 /* =========================================================
-   BUTTONS
+   FILE VALIDATION
 ========================================================= */
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
+function validateFile(file) {
+  if (!file) {
+    return "Choose an image first.";
+  }
 
-  min-height: 39px;
+  const extension = file.name
+    .split(".")
+    .pop()
+    .toLowerCase();
 
-  padding: 10px 15px;
+  if (
+    !ALLOWED_TYPES.includes(file.type) ||
+    !ALLOWED_EXTENSIONS.includes(extension)
+  ) {
+    return "Only JPG, JPEG and PNG images are supported.";
+  }
 
-  border: 1px solid transparent;
-  border-radius: 10px;
+  if (file.size < 1) {
+    return "The selected image is empty.";
+  }
 
-  cursor: pointer;
+  if (file.size > MAX_BYTES) {
+    return "Each image must be 10 MB or smaller.";
+  }
 
-  font-size: 10px;
-  font-weight: 700;
-
-  white-space: nowrap;
-
-  transition:
-    background var(--transition),
-    color var(--transition),
-    border-color var(--transition),
-    box-shadow var(--transition),
-    transform var(--transition),
-    opacity var(--transition);
+  return "";
 }
 
-.button svg {
-  width: 15px;
-  height: 15px;
+
+/* =========================================================
+   UPLOAD QUEUE
+========================================================= */
+
+function createQueueItem(file) {
+  return {
+    id: createLocalId(),
+    file,
+    previewUrl: URL.createObjectURL(file),
+    status: "Ready",
+    progress: 0,
+    imageId: null,
+    error: ""
+  };
 }
 
-.button:hover:not(:disabled) {
-  transform: translateY(-1px);
+
+function createLocalId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).slice(2)
+  );
 }
 
-.button:active:not(:disabled) {
-  transform: translateY(0);
+
+function revokeQueuePreview(item) {
+  if (item && item.previewUrl) {
+    URL.revokeObjectURL(item.previewUrl);
+    item.previewUrl = null;
+  }
 }
 
-.button:disabled {
-  opacity: 0.48;
-  cursor: not-allowed;
+
+function addFiles(fileList) {
+  const files = Array.from(fileList || []);
+
+  if (!files.length) {
+    return;
+  }
+
+  let added = 0;
+  let rejected = 0;
+
+  for (const file of files) {
+    const problem = validateFile(file);
+
+    if (problem) {
+      rejected++;
+
+      notify(
+        `${file.name}: ${problem}`,
+        true
+      );
+
+      continue;
+    }
+
+    const duplicate = uploadQueue.some(
+      (item) =>
+        item.file.name === file.name &&
+        item.file.size === file.size &&
+        item.file.lastModified === file.lastModified
+    );
+
+    if (duplicate) {
+      continue;
+    }
+
+    uploadQueue.push(createQueueItem(file));
+    added++;
+  }
+
+  renderUploadQueue();
+
+  if (added > 0) {
+    notify(
+      `Added ${added} image${added === 1 ? "" : "s"} to the upload queue.`
+    );
+  } else if (rejected === 0) {
+    notify("No new images were added.", true);
+  }
 }
 
-.button-primary {
-  background: linear-gradient(
-    135deg,
-    #7969ef,
-    #5d49d9
+
+function removeQueueItem(localId) {
+  if (isUploading) {
+    notify(
+      "Please wait until the current upload batch finishes.",
+      true
+    );
+
+    return;
+  }
+
+  const item = uploadQueue.find(
+    (entry) => entry.id === localId
   );
 
-  color: #ffffff;
+  if (!item) {
+    return;
+  }
 
-  box-shadow: 0 5px 13px rgba(104, 87, 232, 0.17);
-}
+  revokeQueuePreview(item);
 
-.button-primary:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    #6d5be7,
-    #4e3ac7
+  uploadQueue = uploadQueue.filter(
+    (entry) => entry.id !== localId
   );
 
-  box-shadow: var(--shadow-purple);
+  renderUploadQueue();
 }
 
-.button-secondary {
-  border-color: var(--line-dark);
 
-  background: var(--surface);
-  color: var(--ink-soft);
-}
+function clearQueue() {
+  if (isUploading) {
+    notify(
+      "The upload queue cannot be cleared while uploads are running.",
+      true
+    );
 
-.button-secondary:hover:not(:disabled) {
-  border-color: var(--purple-border);
+    return;
+  }
 
-  background: var(--purple-light);
-  color: var(--purple-dark);
-}
+  uploadQueue.forEach(revokeQueuePreview);
 
-.button-ghost {
-  border-color: transparent;
+  uploadQueue = [];
 
-  background: var(--surface-muted);
-  color: var(--ink-soft);
-}
+  $("file-input").value = "";
 
-.button-ghost:hover:not(:disabled) {
-  background: var(--purple-light);
-  color: var(--purple-dark);
-}
+  renderUploadQueue();
 
-.button-arrow {
-  margin-left: 2px;
-
-  font-size: 16px;
-  line-height: 1;
-}
-
-.button-export {
-  box-shadow: none;
+  notify("Upload queue cleared.");
 }
 
 
 /* =========================================================
-   DROPZONE
+   UPLOAD QUEUE RENDERING
 ========================================================= */
 
-.dropzone {
-  position: relative;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  min-height: 250px;
-
-  padding: 28px 20px;
-
-  overflow: hidden;
-
-  border: 1.5px dashed #dcd6f9;
-  border-radius: 16px;
-
-  background:
-    radial-gradient(
-      ellipse at 50% 0%,
-      rgba(113, 96, 232, 0.055),
-      transparent 60%
-    ),
-    var(--surface-soft);
-
-  cursor: pointer;
-
-  text-align: center;
-
-  transition:
-    border-color var(--transition),
-    background var(--transition),
-    box-shadow var(--transition);
-}
-
-.dropzone::before,
-.dropzone::after {
-  position: absolute;
-
-  width: 125px;
-  height: 125px;
-
-  border: 1px solid rgba(113, 96, 232, 0.07);
-  border-radius: 50%;
-
-  content: "";
-
-  pointer-events: none;
-}
-
-.dropzone::before {
-  top: -65px;
-  left: -35px;
-}
-
-.dropzone::after {
-  right: -48px;
-  bottom: -72px;
-}
-
-.dropzone:hover,
-.dropzone.dragover {
-  border-color: var(--purple);
-
-  background:
-    radial-gradient(
-      ellipse at 50% 0%,
-      rgba(113, 96, 232, 0.1),
-      transparent 60%
-    ),
-    var(--surface-soft);
-
-  box-shadow: inset 0 0 0 1px rgba(113, 96, 232, 0.05);
-}
-
-.dropzone.dragover {
-  box-shadow:
-    inset 0 0 0 2px rgba(113, 96, 232, 0.12),
-    0 0 0 4px rgba(113, 96, 232, 0.07);
-}
-
-.dropzone-content {
-  position: relative;
-  z-index: 1;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.upload-illustration {
-  position: relative;
-
-  width: 67px;
-  height: 67px;
-
-  display: grid;
-  place-items: center;
-
-  margin-bottom: 13px;
-}
-
-.upload-illustration-ring {
-  position: absolute;
-  inset: 0;
-
-  border: 1px solid #e5e0ff;
-  border-radius: 21px;
-
-  background: linear-gradient(
-    145deg,
-    #f7f5ff,
-    #eeeaff
-  );
-
-  transform: rotate(-7deg);
-}
-
-.upload-illustration-icon {
-  position: relative;
-  z-index: 1;
-
-  width: 51px;
-  height: 51px;
-
-  display: grid;
-  place-items: center;
-
-  border: 1px solid #e5e0ff;
-  border-radius: 16px;
-
-  background: var(--surface);
-
-  color: var(--purple);
-
-  box-shadow: var(--shadow-sm);
-}
-
-.upload-illustration-icon svg {
-  width: 23px;
-  height: 23px;
-}
-
-.dropzone h4 {
-  margin: 0;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.dropzone-content > p {
-  margin: 7px 0 15px;
-
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.dropzone .button {
-  min-height: 37px;
-}
-
-.file-rules {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px;
-
-  margin-top: 17px;
-
-  color: var(--muted);
-
-  font-size: 9px;
-}
-
-.file-rule-divider {
-  color: #c4c1d6;
-}
-
-
-/* =========================================================
-   SELECTED IMAGE PREVIEW
-========================================================= */
-
-.selected-file {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-
-  margin-top: 15px;
-  padding: 13px;
-
-  border: 1px solid var(--line);
-  border-radius: 13px;
-
-  background: var(--surface-soft);
-
-  animation: fade-up 220ms ease both;
-}
-
-.selected-file > img {
-  width: 63px;
-  height: 63px;
-
-  flex-shrink: 0;
-
-  object-fit: cover;
-
-  border: 1px solid var(--line);
-  border-radius: 10px;
-
-  background: var(--surface-muted);
-}
-
-.selected-file-info {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  flex: 1;
-}
-
-.selected-file-info strong {
-  overflow: hidden;
-
-  color: var(--ink);
-
-  font-size: 11px;
-  font-weight: 800;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.selected-file-info > span {
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.selected-file-info .upload-message {
-  color: var(--purple-dark);
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.remove-selected {
-  width: 34px;
-  height: 34px;
-
-  flex-shrink: 0;
-}
-
-.remove-selected:hover {
-  border-color: #ffd5d9;
-
-  background: var(--red-light);
-  color: var(--red);
-}
-
-
-/* =========================================================
-   MULTI-IMAGE UPLOAD QUEUE
-========================================================= */
-
-.upload-queue {
-  margin-top: 18px;
-  padding: 16px;
-
-  border: 1px solid var(--line);
-  border-radius: 13px;
-
-  background: var(--surface-soft);
-}
-
-.upload-queue-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 15px;
-
-  margin-bottom: 13px;
-}
-
-.upload-queue-heading h4 {
-  margin: 0;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.upload-queue-heading p {
-  margin: 5px 0 0;
-
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.upload-queue-heading .button {
-  min-height: 32px;
-  padding: 7px 10px;
-
-  font-size: 9px;
-}
-
-.upload-queue-list {
-  display: grid;
-  gap: 9px;
-}
-
-.queue-item {
-  min-width: 0;
-
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  padding: 10px;
-
-  border: 1px solid var(--line);
-  border-radius: 10px;
-
-  background: var(--surface);
-}
-
-.queue-item-preview {
-  width: 47px;
-  height: 47px;
-
-  flex-shrink: 0;
-
-  overflow: hidden;
-
-  border: 1px solid var(--line);
-  border-radius: 8px;
-
-  background: var(--surface-muted);
-}
-
-.queue-item-preview img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-}
-
-.queue-item-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.queue-item-copy strong {
-  display: block;
-
-  overflow: hidden;
-
-  color: var(--ink);
-
-  font-size: 10px;
-  font-weight: 700;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.queue-item-copy span {
-  display: block;
-
-  margin-top: 4px;
-
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.queue-item-status {
-  flex-shrink: 0;
-
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.queue-item-status.success {
-  color: var(--green);
-}
-
-.queue-item-status.error {
-  color: var(--red);
-}
-
-.queue-item-remove {
-  width: 29px;
-  height: 29px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-
-  border: 1px solid transparent;
-  border-radius: 8px;
-
-  background: transparent;
-  color: var(--muted);
-
-  cursor: pointer;
-}
-
-.queue-item-remove:hover {
-  border-color: #ffd5d9;
-
-  background: var(--red-light);
-  color: var(--red);
-}
-
-.queue-item-remove svg {
-  width: 14px;
-  height: 14px;
+function renderUploadQueue() {
+  const queueContainer = $("upload-queue");
+  const queueList = $("upload-queue-list");
+  const dropzone = $("dropzone");
+  const selectedFilePanel = $("selected-file");
+
+  if (
+    !queueContainer ||
+    !queueList ||
+    !dropzone ||
+    !selectedFilePanel
+  ) {
+    return;
+  }
+
+  const hasItems = uploadQueue.length > 0;
+
+  queueContainer.hidden = !hasItems;
+
+  /*
+   * The redesigned interface uses the multi-image queue.
+   * The older single-file preview remains in the HTML for
+   * compatibility but is hidden by the new application.
+   */
+
+  selectedFilePanel.hidden = true;
+
+  dropzone.hidden = isUploading && hasItems;
+
+  const queueSummary = $("queue-summary");
+
+  if (queueSummary) {
+    queueSummary.textContent =
+      `${uploadQueue.length} selected image` +
+      `${uploadQueue.length === 1 ? "" : "s"} · ` +
+      `${formatBytes(
+        uploadQueue.reduce(
+          (total, item) => total + item.file.size,
+          0
+        )
+      )} total`;
+  }
+
+  queueList.innerHTML = uploadQueue.map((item) => {
+    let statusText = item.status;
+
+    if (item.status === "Uploading") {
+      statusText = `${item.progress}%`;
+    }
+
+    const statusClass =
+      item.status === "Completed"
+        ? "success"
+        : item.status === "Failed"
+          ? "error"
+          : "";
+
+    return `
+      <article class="queue-item">
+
+        <div class="queue-item-preview">
+          <img
+            src="${escapeHtml(item.previewUrl || "")}"
+            alt=""
+          >
+        </div>
+
+        <div class="queue-item-copy">
+          <strong title="${escapeHtml(item.file.name)}">
+            ${escapeHtml(item.file.name)}
+          </strong>
+
+          <span>
+            ${escapeHtml(formatBytes(item.file.size))}
+            ${item.error
+              ? ` · ${escapeHtml(item.error)}`
+              : ""}
+          </span>
+        </div>
+
+        <span class="queue-item-status ${statusClass}">
+          ${escapeHtml(statusText)}
+        </span>
+
+        ${
+          !isUploading && item.status === "Ready"
+            ? `
+              <button
+                class="queue-item-remove"
+                type="button"
+                data-remove-queue="${escapeHtml(item.id)}"
+                aria-label="Remove ${escapeHtml(item.file.name)}"
+                title="Remove image"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 6l12 12"/>
+                  <path d="M18 6L6 18"/>
+                </svg>
+              </button>
+            `
+            : ""
+        }
+
+      </article>
+    `;
+  }).join("");
+
+  const uploadButton = $("upload-btn");
+
+  uploadButton.disabled =
+    isUploading ||
+    !uploadQueue.some((item) => item.status === "Ready");
+
+  $("upload-btn-label").textContent =
+    isUploading
+      ? "Uploading images…"
+      : uploadQueue.some((item) => item.status === "Ready")
+        ? `Process ${uploadQueue.filter(
+            (item) => item.status === "Ready"
+          ).length} image${uploadQueue.filter(
+            (item) => item.status === "Ready"
+          ).length === 1 ? "" : "s"}`
+        : "Start processing";
+
+  $("clear-queue-btn").disabled = isUploading;
 }
 
 
@@ -1742,562 +645,580 @@ svg {
    UPLOAD PROGRESS
 ========================================================= */
 
-.upload-progress-section {
-  margin-top: 17px;
-}
-
-.upload-progress-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  margin-bottom: 8px;
-
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.upload-progress-heading strong {
-  color: var(--purple-dark);
-  font-size: 10px;
-}
-
-.progress-track {
-  height: 7px;
-
-  overflow: hidden;
-
-  border-radius: 10px;
-
-  background: var(--surface-muted);
-}
-
-.progress-fill {
-  width: 0%;
-  height: 100%;
-
-  border-radius: inherit;
-
-  background: linear-gradient(
-    90deg,
-    #9385ff,
-    #6651df
+function setUploadProgress(percent, label = "Uploading images") {
+  const safePercent = Math.max(
+    0,
+    Math.min(100, Math.round(percent))
   );
 
-  transition: width 180ms ease;
+  const progress = $("upload-progress");
+  const percentLabel = $("upload-progress-percent");
+  const progressLabel = $("upload-progress-label");
+  const track = $("upload-progress-track");
+  const section = $("upload-progress-section");
+
+  section.hidden = false;
+
+  progress.style.width = `${safePercent}%`;
+
+  percentLabel.textContent = `${safePercent}%`;
+  progressLabel.textContent = label;
+
+  track.setAttribute("aria-valuenow", String(safePercent));
+}
+
+
+function hideUploadProgress() {
+  $("upload-progress-section").hidden = true;
+
+  $("upload-progress").style.width = "0%";
+
+  $("upload-progress-track").setAttribute(
+    "aria-valuenow",
+    "0"
+  );
 }
 
 
 /* =========================================================
-   UPLOAD ACTIONS
+   S3 UPLOAD
 ========================================================= */
 
-.upload-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+function uploadFileToS3(file, uploadUrl, onProgress) {
+  return new Promise((resolve, reject) => {
+    const url = safeUrl(uploadUrl);
 
-  margin-top: 18px;
-}
+    if (!url) {
+      reject(
+        new Error("The API returned an invalid S3 upload URL.")
+      );
 
-.upload-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+      return;
+    }
 
-  color: var(--muted);
+    const xhr = new XMLHttpRequest();
 
-  font-size: 10px;
-  line-height: 1.6;
-}
+    xhr.open("PUT", url);
 
-.upload-note-icon {
-  color: var(--purple);
-  font-size: 14px;
-}
-
-.upload-actions .button-primary {
-  min-height: 43px;
-  padding: 11px 17px;
-}
-
-
-/* =========================================================
-   LATEST RESULTS
-========================================================= */
-
-.latest-panel {
-  scroll-margin-top: 90px;
-}
-
-.latest-result {
-  min-width: 0;
-}
-
-
-/* Empty state */
-
-.empty-state {
-  min-height: 190px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  padding: 25px 18px;
-
-  border: 1px dashed var(--line-dark);
-  border-radius: 13px;
-
-  background: var(--surface-soft);
-
-  text-align: center;
-}
-
-.empty-state-illustration {
-  width: 80px;
-  height: 68px;
-
-  display: grid;
-  place-items: center;
-
-  margin-bottom: 10px;
-
-  color: var(--purple);
-}
-
-.empty-state-illustration svg {
-  width: 80px;
-  height: 68px;
-
-  stroke: none;
-}
-
-.empty-state > strong {
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.empty-state > p {
-  max-width: 350px;
-
-  margin: 7px 0 0;
-
-  color: var(--muted);
-
-  font-size: 10px;
-  line-height: 1.8;
-}
-
-
-/* Latest image heading */
-
-.latest-item-heading {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-
-  margin-bottom: 15px;
-}
-
-.latest-item-heading strong {
-  max-width: 100%;
-
-  overflow-wrap: anywhere;
-
-  color: var(--ink);
-
-  font-family: var(--font-heading);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.latest-item-error {
-  width: 100%;
-
-  color: var(--red);
-  font-size: 10px;
-}
-
-
-/* Result cards */
-
-.result-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 13px;
-}
-
-.result-card {
-  min-width: 0;
-
-  overflow: hidden;
-
-  border: 1px solid var(--line);
-  border-radius: 13px;
-
-  background: var(--surface);
-
-  transition:
-    transform var(--transition),
-    border-color var(--transition),
-    box-shadow var(--transition);
-}
-
-.result-card:hover {
-  transform: translateY(-2px);
-
-  border-color: var(--purple-border);
-
-  box-shadow: var(--shadow-md);
-}
-
-.result-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-
-  padding: 11px 12px;
-
-  border-bottom: 1px solid var(--line);
-}
-
-.result-card-header strong {
-  color: var(--ink-soft);
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.result-card-header span {
-  color: var(--muted);
-  font-size: 8px;
-}
-
-.result-image {
-  height: 175px;
-
-  display: grid;
-  place-items: center;
-
-  padding: 13px;
-
-  overflow: hidden;
-
-  background:
-    linear-gradient(
-      45deg,
-      var(--surface-muted) 25%,
-      transparent 25%,
-      transparent 75%,
-      var(--surface-muted) 75%
-    ),
-    linear-gradient(
-      45deg,
-      var(--surface-muted) 25%,
-      transparent 25%,
-      transparent 75%,
-      var(--surface-muted) 75%
+    xhr.setRequestHeader(
+      "Content-Type",
+      file.type
     );
 
-  background-position:
-    0 0,
-    7px 7px;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percent = Math.round(
+          (event.loaded / event.total) * 100
+        );
 
-  background-size: 14px 14px;
-}
+        onProgress(percent);
+      }
+    };
 
-.result-image img {
-  max-width: 100%;
-  max-height: 100%;
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `S3 upload failed with status ${xhr.status}. ` +
+            "Check the upload URL, expiry and S3 CORS configuration."
+          )
+        );
+      }
+    };
 
-  object-fit: contain;
+    xhr.onerror = () => {
+      reject(
+        new Error(
+          "Network error during S3 upload. Check the connection and S3 CORS configuration."
+        )
+      );
+    };
 
-  border-radius: 5px;
+    xhr.onabort = () => {
+      reject(new Error("The upload was cancelled."));
+    };
 
-  cursor: zoom-in;
-}
-
-.result-image > span {
-  color: var(--muted);
-  font-size: 10px;
-  text-align: center;
-}
-
-.result-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  padding: 13px;
-}
-
-.result-copy > strong {
-  color: var(--ink);
-
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.result-copy > span {
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.download-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-
-  align-self: flex-start;
-
-  margin-top: 3px;
-
-  color: var(--purple-dark);
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.download-link:hover {
-  text-decoration: underline;
+    xhr.send(file);
+  });
 }
 
 
 /* =========================================================
-   HISTORY HEADING AND TOOLBAR
+   PROCESSING STATUS
 ========================================================= */
 
-.history-panel {
-  padding-bottom: 0;
-}
+function normalizeStatus(status) {
+  const knownStatuses = [
+    "Pending",
+    "Processing",
+    "Completed",
+    "Failed"
+  ];
 
-.history-heading {
-  margin-bottom: 20px;
-}
+  const found = knownStatuses.find(
+    (value) =>
+      String(status || "").toLowerCase() === value.toLowerCase()
+  );
 
-.history-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  flex-shrink: 0;
-}
-
-
-/* Search */
-
-.history-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-
-  margin-bottom: 16px;
-}
-
-.history-search {
-  min-width: 180px;
-  max-width: 390px;
-  flex: 1;
-
-  display: flex;
-  align-items: center;
-  gap: 9px;
-
-  padding: 0 11px;
-
-  border: 1px solid var(--line-dark);
-  border-radius: 9px;
-
-  background: var(--surface);
-
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
-}
-
-.history-search:focus-within {
-  border-color: var(--purple);
-
-  box-shadow: 0 0 0 3px rgba(113, 96, 232, 0.08);
-}
-
-.history-search > svg {
-  width: 15px;
-  height: 15px;
-
-  color: var(--muted);
-}
-
-.history-search input {
-  width: 100%;
-  min-width: 0;
-  height: 38px;
-
-  padding: 0;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: var(--ink);
-
-  font-size: 10px;
-}
-
-.history-search input::placeholder {
-  color: var(--muted-light);
-}
-
-.history-search input:focus-visible {
-  outline: 0;
-}
-
-.history-search kbd {
-  min-width: 20px;
-  height: 20px;
-
-  display: grid;
-  place-items: center;
-
-  border: 1px solid var(--line-dark);
-  border-radius: 5px;
-
-  background: var(--surface-soft);
-
-  color: var(--muted);
-
-  font-family: var(--font-body);
-  font-size: 9px;
+  return found || "Pending";
 }
 
 
-/* Filters */
+function statusPill(status) {
+  const normalized = normalizeStatus(status);
 
-.history-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.control-label {
-  color: var(--muted);
-
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.history-controls select {
-  min-height: 37px;
-  max-width: 145px;
-
-  padding: 0 27px 0 10px;
-
-  border: 1px solid var(--line-dark);
-  border-radius: 9px;
-
-  background: var(--surface);
-  color: var(--ink-soft);
-
-  cursor: pointer;
-
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.history-controls select:focus {
-  border-color: var(--purple);
+  return `
+    <span class="pill ${normalized.toLowerCase()}">
+      ${escapeHtml(normalized)}
+    </span>
+  `;
 }
 
 
 /* =========================================================
-   HISTORY META AND VIEW TOGGLE
+   UPLOAD BATCH
 ========================================================= */
 
-.history-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+async function uploadSelected() {
+  if (isUploading) {
+    return;
+  }
 
-  min-height: 42px;
+  const readyItems = uploadQueue.filter(
+    (item) => item.status === "Ready"
+  );
 
-  margin-bottom: 8px;
+  if (!readyItems.length) {
+    notify("Add at least one valid image first.", true);
+    return;
+  }
+
+  if (!apiBase()) {
+    notify(
+      "Configure your API endpoint before uploading.",
+      true
+    );
+
+    await setApiBase();
+
+    if (!apiBase()) {
+      return;
+    }
+  }
+
+  isUploading = true;
+
+  $("upload-btn").disabled = true;
+  $("choose-btn").disabled = true;
+  $("file-input").disabled = true;
+
+  $("dropzone").setAttribute("aria-disabled", "true");
+
+  setUploadProgress(
+    0,
+    `Preparing ${readyItems.length} image${readyItems.length === 1 ? "" : "s"}`
+  );
+
+  renderUploadQueue();
+
+  let completedUploads = 0;
+  let failedUploads = 0;
+
+  try {
+    for (let index = 0; index < readyItems.length; index++) {
+      const queueItem = readyItems[index];
+      const file = queueItem.file;
+
+      queueItem.status = "Uploading";
+      queueItem.progress = 0;
+      queueItem.error = "";
+
+      renderUploadQueue();
+
+      try {
+        /*
+         * Step 1:
+         * Ask the backend for an upload record and
+         * presigned S3 URL.
+         *
+         * Existing API contract:
+         * POST /uploads
+         * {
+         *   filename,
+         *   content_type,
+         *   size
+         * }
+         */
+
+        const record = await api("/uploads", {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            filename: file.name,
+            content_type: file.type,
+            size: file.size
+          })
+        });
+
+        if (!record.image_id || !record.upload_url) {
+          throw new Error(
+            "The API did not return image_id and upload_url."
+          );
+        }
+
+        queueItem.imageId = record.image_id;
+
+        latestImageId = record.image_id;
+
+        /*
+         * Step 2:
+         * Upload the actual image to S3.
+         */
+
+        await uploadFileToS3(
+          file,
+          record.upload_url,
+          (fileProgress) => {
+            queueItem.progress = fileProgress;
+
+            const overallProgress = Math.round(
+              (
+                (index + fileProgress / 100) /
+                readyItems.length
+              ) * 100
+            );
+
+            setUploadProgress(
+              overallProgress,
+              `Uploading ${index + 1} of ${readyItems.length}: ${file.name}`
+            );
+
+            renderUploadQueue();
+          }
+        );
+
+        queueItem.status = "Uploaded";
+        queueItem.progress = 100;
+
+        completedUploads++;
+
+        /*
+         * Start polling the image after the S3 upload
+         * completes. Processing is asynchronous.
+         */
+
+        startPolling(record.image_id);
+
+      } catch (error) {
+        queueItem.status = "Failed";
+        queueItem.error = error.message;
+
+        failedUploads++;
+
+        notify(
+          `${file.name}: ${error.message}`,
+          true
+        );
+      }
+
+      renderUploadQueue();
+
+      setUploadProgress(
+        Math.round(
+          ((index + 1) / readyItems.length) * 100
+        ),
+        `Processed upload ${index + 1} of ${readyItems.length}`
+      );
+    }
+
+    await refreshAll();
+
+    const successfulCount = completedUploads;
+
+    if (failedUploads === 0) {
+      notify(
+        `Successfully uploaded ${successfulCount} image${successfulCount === 1 ? "" : "s"}. Processing is running in the background.`
+      );
+    } else {
+      notify(
+        `${successfulCount} uploaded and ${failedUploads} failed. Review the queue for details.`,
+        true
+      );
+    }
+
+  } catch (error) {
+    notify(error.message, true);
+
+  } finally {
+    isUploading = false;
+
+    $("choose-btn").disabled = false;
+    $("file-input").disabled = false;
+
+    $("dropzone").removeAttribute("aria-disabled");
+
+    renderUploadQueue();
+
+    if (
+      uploadQueue.every(
+        (item) =>
+          item.status === "Uploaded" ||
+          item.status === "Completed" ||
+          item.status === "Failed"
+      )
+    ) {
+      setTimeout(hideUploadProgress, 1200);
+    }
+  }
 }
 
-.history-meta > p {
-  margin: 0;
 
-  color: var(--muted);
-  font-size: 10px;
+/* =========================================================
+   POLLING
+========================================================= */
+
+function startPolling(imageId) {
+  if (!imageId) {
+    return;
+  }
+
+  stopPolling(imageId);
+
+  let attempts = 0;
+
+  const timer = setInterval(async () => {
+    attempts++;
+
+    try {
+      const item = await api(
+        `/images/${encodeURIComponent(imageId)}`
+      );
+
+      if (item && item.image_id) {
+        mergeHistoryItem(item);
+      }
+
+      if (imageId === latestImageId) {
+        renderLatest(item);
+      }
+
+      renderHistory();
+      updateStatistics();
+
+      const queueItem = uploadQueue.find(
+        (entry) => entry.imageId === imageId
+      );
+
+      if (queueItem) {
+        queueItem.status = normalizeStatus(item.status);
+
+        if (queueItem.status === "Completed") {
+          queueItem.error = "";
+        }
+
+        if (queueItem.status === "Failed") {
+          queueItem.error =
+            item.error_message || "Processing failed.";
+        }
+
+        renderUploadQueue();
+      }
+
+      if (TERMINAL_STATUSES.includes(normalizeStatus(item.status))) {
+        stopPolling(imageId);
+
+        if (item.status === "Completed") {
+          if (imageId === latestImageId) {
+            notify("Image processing completed successfully.");
+          }
+        } else {
+          notify(
+            item.error_message || "Image processing failed.",
+            true
+          );
+        }
+
+        await refreshAll();
+      }
+
+    } catch (error) {
+      if (attempts >= MAX_POLL_ATTEMPTS) {
+        stopPolling(imageId);
+
+        notify(
+          "Could not retrieve the latest processing status. Refresh history to try again.",
+          true
+        );
+      }
+    }
+
+    if (attempts >= MAX_POLL_ATTEMPTS) {
+      stopPolling(imageId);
+    }
+
+  }, POLL_INTERVAL_MS);
+
+  pollTimers.set(imageId, timer);
 }
 
-.view-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
 
-  padding: 3px;
+function stopPolling(imageId) {
+  const timer = pollTimers.get(imageId);
 
-  border: 1px solid var(--line);
-  border-radius: 9px;
-
-  background: var(--surface-muted);
+  if (timer) {
+    clearInterval(timer);
+    pollTimers.delete(imageId);
+  }
 }
 
-.view-toggle-btn {
-  min-height: 29px;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+/* =========================================================
+   HISTORY DATA MANAGEMENT
+========================================================= */
 
-  padding: 0 9px;
+function mergeHistoryItem(item) {
+  if (!item || !item.image_id) {
+    return;
+  }
 
-  border: 1px solid transparent;
-  border-radius: 6px;
+  const index = allHistoryItems.findIndex(
+    (entry) => entry.image_id === item.image_id
+  );
 
-  background: transparent;
-  color: var(--muted);
-
-  cursor: pointer;
-
-  font-size: 9px;
-  font-weight: 700;
-
-  transition:
-    color var(--transition),
-    background var(--transition),
-    border-color var(--transition),
-    box-shadow var(--transition);
+  if (index >= 0) {
+    allHistoryItems[index] = {
+      ...allHistoryItems[index],
+      ...item
+    };
+  } else {
+    allHistoryItems.unshift(item);
+  }
 }
 
-.view-toggle-btn svg {
-  width: 13px;
-  height: 13px;
+
+function updateStatistics() {
+  $("total-count").textContent =
+    apiBase() ? allHistoryItems.length : "—";
+
+  $("pending-count").textContent =
+    apiBase()
+      ? allHistoryItems.filter(
+          (item) =>
+            ["Pending", "Processing"].includes(
+              normalizeStatus(item.status)
+            )
+        ).length
+      : "—";
+
+  $("completed-count").textContent =
+    apiBase()
+      ? allHistoryItems.filter(
+          (item) =>
+            normalizeStatus(item.status) === "Completed"
+        ).length
+      : "—";
+
+  $("failed-count").textContent =
+    apiBase()
+      ? allHistoryItems.filter(
+          (item) =>
+            normalizeStatus(item.status) === "Failed"
+        ).length
+      : "—";
 }
 
-.view-toggle-btn:hover {
-  color: var(--purple-dark);
+
+/* =========================================================
+   HISTORY SEARCH, FILTERING AND SORTING
+========================================================= */
+
+function getVisibleHistory() {
+  let items = [...allHistoryItems];
+
+  const query = historySearch.toLocaleLowerCase();
+
+  if (query) {
+    items = items.filter((item) => {
+      const text = [
+        item.filename,
+        item.image_id,
+        item.status
+      ].join(" ").toLocaleLowerCase();
+
+      return text.includes(query);
+    });
+  }
+
+  if (historyStatus !== "All") {
+    items = items.filter(
+      (item) =>
+        normalizeStatus(item.status) === historyStatus
+    );
+  }
+
+  items.sort((a, b) => {
+    if (historySort === "name-asc") {
+      return String(a.filename || "").localeCompare(
+        String(b.filename || "")
+      );
+    }
+
+    if (historySort === "name-desc") {
+      return String(b.filename || "").localeCompare(
+        String(a.filename || "")
+      );
+    }
+
+    const dateA = Date.parse(a.uploaded_at || "") || 0;
+    const dateB = Date.parse(b.uploaded_at || "") || 0;
+
+    return historySort === "oldest"
+      ? dateA - dateB
+      : dateB - dateA;
+  });
+
+  return items;
 }
 
-.view-toggle-btn.active {
-  border-color: var(--line);
 
-  background: var(--surface);
-  color: var(--purple-dark);
+/* =========================================================
+   HISTORY OUTPUT LINKS
+========================================================= */
 
-  box-shadow: var(--shadow-sm);
+function outputs(item) {
+  const links = [];
+
+  const original = safeUrl(item.original_url);
+  const resized = safeUrl(item.resized_url);
+  const thumbnail = safeUrl(item.thumbnail_url);
+
+  if (original) {
+    links.push(
+      safeLink(original, "Original ↗")
+    );
+  }
+
+  if (resized) {
+    links.push(
+      safeLink(resized, "Resized ↗")
+    );
+  }
+
+  if (thumbnail) {
+    links.push(
+      safeLink(thumbnail, "Thumbnail ↗")
+    );
+  }
+
+  return links.length
+    ? links.join("")
+    : "—";
 }
 
 
@@ -2305,477 +1226,422 @@ svg {
    HISTORY TABLE
 ========================================================= */
 
-.history-table-view {
-  min-width: 0;
-}
-
-.table-scroll {
-  width: 100%;
-
-  overflow-x: auto;
-
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-.history-table {
-  width: 100%;
-
-  border-collapse: separate;
-  border-spacing: 0;
-
-  text-align: left;
-}
-
-.history-table thead {
-  background: var(--surface-soft);
-}
-
-.history-table th {
-  padding: 13px 14px;
-
-  border-bottom: 1px solid var(--line);
-
-  color: var(--muted);
-
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-
-  white-space: nowrap;
-}
-
-.history-table td {
-  padding: 14px;
-
-  border-bottom: 1px solid var(--line);
-
-  color: var(--ink-soft);
-
-  font-size: 10px;
-  vertical-align: middle;
-}
-
-.history-table tbody tr {
-  background: var(--surface);
-
-  transition: background var(--transition);
-}
-
-.history-table tbody tr:hover {
-  background: var(--surface-soft);
-}
-
-.history-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.column-image {
-  min-width: 190px;
-  width: 34%;
-}
-
-.column-uploaded {
-  min-width: 125px;
-  width: 24%;
-}
-
-.column-status {
-  min-width: 105px;
-  width: 17%;
-}
-
-.column-outputs {
-  min-width: 150px;
-  width: 25%;
-}
-
-
-/* File cell */
-
-.file-cell {
-  min-width: 0;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mini-thumb {
-  width: 40px;
-  height: 40px;
-
-  display: block;
-  flex-shrink: 0;
-
-  object-fit: cover;
-
-  border: 1px solid var(--line);
-  border-radius: 8px;
-
-  background: var(--surface-muted);
-}
-
-.file-cell > div {
-  min-width: 0;
-}
-
-.file-cell strong {
-  display: block;
-
-  max-width: 200px;
-
-  overflow: hidden;
-
-  color: var(--ink);
-
-  font-size: 10px;
-  font-weight: 800;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.file-cell small {
-  display: block;
-
-  max-width: 200px;
-
-  margin-top: 4px;
-
-  overflow: hidden;
-
-  color: var(--muted);
-
-  font-size: 8px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-/* Status pills */
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-
-  padding: 5px 8px;
-
-  border: 1px solid transparent;
-  border-radius: 6px;
-
-  font-size: 8px;
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.pill::before {
-  width: 5px;
-  height: 5px;
-
-  border-radius: 50%;
-
-  background: currentColor;
-
-  content: "";
-}
-
-.pill.pending {
-  border-color: #f3e5c5;
-
-  background: var(--amber-light);
-  color: #a97816;
-}
-
-.pill.processing {
-  border-color: #dce7ff;
-
-  background: var(--blue-light);
-  color: #3d72d4;
-}
-
-.pill.completed {
-  border-color: #cdeedd;
-
-  background: var(--green-light);
-  color: #16825d;
-}
-
-.pill.failed {
-  border-color: #ffd7db;
-
-  background: var(--red-light);
-  color: #c44454;
-}
-
-
-/* Output links */
-
-.output-links {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.output-links a {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-
-  padding: 5px 7px;
-
-  border: 1px solid var(--line);
-  border-radius: 6px;
-
-  background: var(--surface);
-
-  color: var(--purple-dark);
-
-  font-size: 8px;
-  font-weight: 800;
-
-  transition:
-    border-color var(--transition),
-    background var(--transition);
-}
-
-.output-links a:hover {
-  border-color: var(--purple-border);
-
-  background: var(--purple-light);
-}
-
-.table-empty {
-  min-height: 120px;
-
-  padding: 35px 20px !important;
-
-  color: var(--muted) !important;
-
-  text-align: center;
-
-  line-height: 1.8;
+function renderHistoryTable(items) {
+  const body = $("history-body");
+
+  if (!items.length) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="4" class="table-empty">
+          ${
+            allHistoryItems.length
+              ? "No images match your search or filter."
+              : "No image records are available yet."
+          }
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  body.innerHTML = items.map((item) => {
+    const thumbnail = safeUrl(item.thumbnail_url);
+
+    return `
+      <tr>
+
+        <td>
+          <div class="file-cell">
+
+            ${
+              thumbnail
+                ? `
+                  <img
+                    class="mini-thumb"
+                    src="${escapeHtml(thumbnail)}"
+                    alt=""
+                    loading="lazy"
+                    data-preview-url="${escapeHtml(thumbnail)}"
+                    data-preview-title="${escapeHtml(item.filename || "Image")}"
+                  >
+                `
+                : `
+                  <span
+                    class="mini-thumb"
+                    style="display:grid;place-items:center"
+                  >▧</span>
+                `
+            }
+
+            <div>
+              <strong
+                title="${escapeHtml(item.filename || "Untitled image")}"
+              >
+                ${escapeHtml(item.filename || "Untitled image")}
+              </strong>
+
+              <small>
+                ${escapeHtml(item.image_id || "")}
+              </small>
+            </div>
+
+          </div>
+        </td>
+
+        <td>
+          ${escapeHtml(formatDate(item.uploaded_at))}
+        </td>
+
+        <td>
+          ${statusPill(item.status)}
+
+          ${
+            item.error_message
+              ? `
+                <div
+                  title="${escapeHtml(item.error_message)}"
+                  style="color:var(--red);font-size:9px;margin-top:5px"
+                >
+                  Processing error
+                </div>
+              `
+              : ""
+          }
+        </td>
+
+        <td class="output-links">
+          ${outputs(item)}
+        </td>
+
+      </tr>
+    `;
+  }).join("");
 }
 
 
 /* =========================================================
-   HISTORY GRID VIEW
+   HISTORY GRID
 ========================================================= */
 
-.history-grid-view {
-  min-width: 0;
-}
+function renderHistoryGrid(items) {
+  const grid = $("history-grid");
 
-.history-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 13px;
-}
+  if (!items.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <strong>No images found</strong>
+        <p>Try changing your search or status filter.</p>
+      </div>
+    `;
 
-.history-grid-card {
-  min-width: 0;
+    return;
+  }
 
-  overflow: hidden;
+  grid.innerHTML = items.map((item) => {
+    const thumbnail = safeUrl(
+      item.thumbnail_url || item.resized_url || item.original_url
+    );
 
-  border: 1px solid var(--line);
-  border-radius: 12px;
+    return `
+      <article class="history-grid-card">
 
-  background: var(--surface);
+        <div class="history-grid-image">
 
-  transition:
-    transform var(--transition),
-    border-color var(--transition),
-    box-shadow var(--transition);
-}
+          ${
+            thumbnail
+              ? `
+                <img
+                  src="${escapeHtml(thumbnail)}"
+                  alt="${escapeHtml(item.filename || "Image")}"
+                  loading="lazy"
+                  data-preview-url="${escapeHtml(thumbnail)}"
+                  data-preview-title="${escapeHtml(item.filename || "Image")}"
+                >
+              `
+              : `
+                <span class="grid-no-image">
+                  ${normalizeStatus(item.status) === "Failed"
+                    ? "Image unavailable"
+                    : "Processing image…"}
+                </span>
+              `
+          }
 
-.history-grid-card:hover {
-  transform: translateY(-2px);
+        </div>
 
-  border-color: var(--purple-border);
+        <div class="history-grid-card-body">
 
-  box-shadow: var(--shadow-md);
-}
+          <span
+            class="history-grid-title"
+            title="${escapeHtml(item.filename || "Untitled image")}"
+          >
+            ${escapeHtml(item.filename || "Untitled image")}
+          </span>
 
-.history-grid-image {
-  position: relative;
+          <span class="history-grid-id">
+            ${escapeHtml(item.image_id || "")}
+          </span>
 
-  height: 150px;
+          <div class="history-grid-meta">
 
-  display: grid;
-  place-items: center;
+            ${statusPill(item.status)}
 
-  padding: 12px;
+            <span class="history-grid-date">
+              ${escapeHtml(formatDate(item.uploaded_at))}
+            </span>
 
-  overflow: hidden;
+          </div>
 
-  background: var(--surface-muted);
-}
+          <div class="history-grid-outputs">
+            ${outputs(item)}
+          </div>
 
-.history-grid-image img {
-  max-width: 100%;
-  max-height: 100%;
+          <button
+            class="history-grid-details-btn"
+            type="button"
+            data-details-id="${escapeHtml(item.image_id || "")}"
+          >
+            View details
+          </button>
 
-  object-fit: contain;
+        </div>
 
-  border-radius: 5px;
-
-  cursor: zoom-in;
-}
-
-.history-grid-image .grid-no-image {
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.history-grid-card-body {
-  padding: 12px;
-}
-
-.history-grid-title {
-  display: block;
-
-  overflow: hidden;
-
-  color: var(--ink);
-
-  font-size: 10px;
-  font-weight: 800;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.history-grid-id {
-  display: block;
-
-  margin-top: 5px;
-
-  overflow: hidden;
-
-  color: var(--muted);
-
-  font-size: 8px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.history-grid-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-
-  margin-top: 11px;
-}
-
-.history-grid-date {
-  color: var(--muted);
-  font-size: 8px;
-}
-
-.history-grid-outputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-
-  margin-top: 11px;
-}
-
-.history-grid-outputs a {
-  padding: 5px 7px;
-
-  border: 1px solid var(--line);
-  border-radius: 6px;
-
-  color: var(--purple-dark);
-
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.history-grid-outputs a:hover {
-  background: var(--purple-light);
-  border-color: var(--purple-border);
-}
-
-.history-grid-details-btn {
-  width: 100%;
-
-  margin-top: 10px;
-  padding: 8px;
-
-  border: 1px solid var(--line);
-  border-radius: 7px;
-
-  background: var(--surface-soft);
-  color: var(--ink-soft);
-
-  cursor: pointer;
-
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.history-grid-details-btn:hover {
-  border-color: var(--purple-border);
-
-  background: var(--purple-light);
-  color: var(--purple-dark);
+      </article>
+    `;
+  }).join("");
 }
 
 
 /* =========================================================
-   HISTORY FOOTER
+   HISTORY RENDERING
 ========================================================= */
 
-.history-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+function renderHistory() {
+  const items = getVisibleHistory();
 
-  min-height: 57px;
+  const summary = $("history-summary");
 
-  margin-top: 16px;
+  if (summary) {
+    summary.textContent =
+      `Showing ${items.length} of ${allHistoryItems.length} image` +
+      `${allHistoryItems.length === 1 ? "" : "s"}`;
+  }
 
-  border-top: 1px solid var(--line);
+  renderHistoryTable(items);
+  renderHistoryGrid(items);
+
+  $("history-table-view").hidden =
+    historyView !== "table";
+
+  $("history-grid-view").hidden =
+    historyView !== "grid";
+
+  $("view-table-btn").classList.toggle(
+    "active",
+    historyView === "table"
+  );
+
+  $("view-grid-btn").classList.toggle(
+    "active",
+    historyView === "grid"
+  );
+
+  $("view-table-btn").setAttribute(
+    "aria-pressed",
+    String(historyView === "table")
+  );
+
+  $("view-grid-btn").setAttribute(
+    "aria-pressed",
+    String(historyView === "grid")
+  );
 }
 
-.history-footer-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 
-  color: var(--muted);
-  font-size: 9px;
+/* =========================================================
+   HISTORY VIEW PREFERENCE
+========================================================= */
+
+function setHistoryView(view) {
+  if (!["table", "grid"].includes(view)) {
+    return;
+  }
+
+  historyView = view;
+
+  try {
+    localStorage.setItem(VIEW_STORAGE_KEY, view);
+  } catch (_) {
+    // Continue without persisting the preference.
+  }
+
+  renderHistory();
 }
 
-.history-footer-icon {
-  width: 15px;
-  height: 15px;
 
-  display: grid;
-  place-items: center;
+/* =========================================================
+   LATEST PROCESSING RESULTS
+========================================================= */
 
-  border: 1px solid var(--line-dark);
-  border-radius: 50%;
+function renderLatest(item) {
+  const box = $("latest-result");
 
-  font-size: 9px;
-  font-weight: 800;
-}
+  if (!item) {
+    box.className = "empty-state";
 
-.history-footer-brand {
-  color: var(--muted-light);
+    box.innerHTML = `
+      <div class="empty-state-illustration">
+        <svg viewBox="0 0 100 82" fill="none" aria-hidden="true">
+          <rect
+            x="12"
+            y="8"
+            width="76"
+            height="62"
+            rx="8"
+            fill="currentColor"
+            fill-opacity="0.06"
+            stroke="currentColor"
+            stroke-opacity="0.18"
+            stroke-width="1.5"
+          />
+          <circle
+            cx="65"
+            cy="26"
+            r="7"
+            fill="currentColor"
+            fill-opacity="0.2"
+          />
+          <path
+            d="M17 59L37 37L51 51L62 42L83 62V65H17V59Z"
+            fill="currentColor"
+            fill-opacity="0.18"
+          />
+        </svg>
+      </div>
 
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
+      <strong>No image selected yet</strong>
+
+      <p>
+        Upload an image to see its original, resized image,
+        and thumbnail here.
+      </p>
+    `;
+
+    return;
+  }
+
+  box.className = "latest-result";
+
+  const cards = [
+    {
+      title: "Original image",
+      subtitle: "Original upload",
+      url: item.original_url
+    },
+    {
+      title: "Resized image",
+      subtitle: "Maximum 800 × 800",
+      url: item.resized_url
+    },
+    {
+      title: "Thumbnail",
+      subtitle: "Maximum 200 × 200",
+      url: item.thumbnail_url
+    }
+  ];
+
+  box.innerHTML = `
+    <div class="latest-item-heading">
+
+      <strong>
+        ${escapeHtml(item.filename || "Untitled image")}
+      </strong>
+
+      ${statusPill(item.status)}
+
+      ${
+        item.error_message
+          ? `
+            <div class="latest-item-error">
+              ${escapeHtml(item.error_message)}
+            </div>
+          `
+          : ""
+      }
+
+    </div>
+
+    <div class="result-grid">
+
+      ${cards.map((card) => {
+        const url = safeUrl(card.url);
+
+        return `
+          <article class="result-card">
+
+            <div class="result-card-header">
+              <strong>${escapeHtml(card.title)}</strong>
+              <span>${escapeHtml(card.subtitle)}</span>
+            </div>
+
+            <div class="result-image">
+
+              ${
+                url
+                  ? `
+                    <img
+                      src="${escapeHtml(url)}"
+                      alt="${escapeHtml(card.title)}"
+                      loading="lazy"
+                      data-preview-url="${escapeHtml(url)}"
+                      data-preview-title="${escapeHtml(card.title)}"
+                    >
+                  `
+                  : `
+                    <span>
+                      ${
+                        normalizeStatus(item.status) === "Failed"
+                          ? "Output unavailable"
+                          : "Waiting for processing…"
+                      }
+                    </span>
+                  `
+              }
+
+            </div>
+
+            <div class="result-copy">
+
+              <strong>${escapeHtml(card.title)}</strong>
+
+              <span>
+                ${url ? "Output available" : "Not generated yet"}
+              </span>
+
+              ${
+                url
+                  ? `
+                    <a
+                      class="download-link"
+                      href="${escapeHtml(url)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open / download ↗
+                    </a>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          </article>
+        `;
+      }).join("")}
+
+    </div>
+  `;
 }
 
 
@@ -2783,132 +1649,195 @@ svg {
    IMAGE DETAILS PANEL
 ========================================================= */
 
-.image-details-panel {
-  scroll-margin-top: 90px;
+async function showImageDetails(imageId) {
+  if (!imageId) {
+    return;
+  }
+
+  currentDetailImageId = imageId;
+
+  const panel = $("image-details-panel");
+  const content = $("image-details-content");
+
+  panel.hidden = false;
+
+  content.innerHTML = `
+    <div class="empty-state">
+      <strong>Loading image details…</strong>
+      <p>Retrieving the latest record from CloudPix.</p>
+    </div>
+  `;
+
+  panel.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+  try {
+    /*
+     * This uses the existing image-detail endpoint.
+     * It does not require a new backend route.
+     */
+
+    const item = await api(
+      `/images/${encodeURIComponent(imageId)}`
+    );
+
+    if (currentDetailImageId !== imageId) {
+      return;
+    }
+
+    renderImageDetails(item);
+
+  } catch (error) {
+    if (currentDetailImageId !== imageId) {
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="empty-state">
+        <strong>Could not load image details</strong>
+        <p>${escapeHtml(error.message)}</p>
+      </div>
+    `;
+  }
 }
 
-.image-details-content {
-  min-width: 0;
-}
 
-.details-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+function renderImageDetails(item) {
+  const content = $("image-details-content");
 
-  margin-bottom: 18px;
-}
+  const original = safeUrl(item.original_url);
+  const resized = safeUrl(item.resized_url);
+  const thumbnail = safeUrl(item.thumbnail_url);
 
-.details-header h4 {
-  margin: 0;
+  const uploadedAt = formatDate(item.uploaded_at);
 
-  color: var(--ink);
+  const metadata = [
+    {
+      label: "Processing status",
+      value: normalizeStatus(item.status)
+    },
+    {
+      label: "Uploaded",
+      value: uploadedAt
+    },
+    {
+      label: "Image ID",
+      value: item.image_id || "—"
+    },
+    {
+      label: "Filename",
+      value: item.filename || "—"
+    },
+    {
+      label: "Original object",
+      value: item.original_key || "Stored in S3"
+    },
+    {
+      label: "Resized output",
+      value: item.resized_key || (resized ? "Available" : "Not available")
+    }
+  ];
 
-  font-family: var(--font-heading);
-  font-size: 13px;
-  font-weight: 800;
+  const outputItems = [
+    {
+      title: "Original image",
+      url: original,
+      description: "The image uploaded by the user."
+    },
+    {
+      title: "Resized image",
+      url: resized,
+      description: "The optimized image generated by CloudPix."
+    },
+    {
+      title: "Thumbnail",
+      url: thumbnail,
+      description: "The smaller preview generated by CloudPix."
+    }
+  ];
 
-  overflow-wrap: anywhere;
-}
+  content.innerHTML = `
+    <div class="details-header">
 
-.details-header p {
-  margin: 5px 0 0;
+      <div>
+        <h4>${escapeHtml(item.filename || "Untitled image")}</h4>
 
-  color: var(--muted);
-  font-size: 10px;
-}
+        <p>
+          Image ID:
+          ${escapeHtml(item.image_id || "—")}
+        </p>
+      </div>
 
-.details-metadata {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+      ${statusPill(item.status)}
 
-  margin-bottom: 20px;
-}
+    </div>
 
-.details-metadata-item {
-  min-width: 0;
+    <div class="details-metadata">
 
-  padding: 13px;
+      ${metadata.map((entry) => `
+        <div class="details-metadata-item">
 
-  border: 1px solid var(--line);
-  border-radius: 10px;
+          <span>${escapeHtml(entry.label)}</span>
 
-  background: var(--surface-soft);
-}
+          <strong>
+            ${escapeHtml(entry.value)}
+          </strong>
 
-.details-metadata-item span {
-  display: block;
+        </div>
+      `).join("")}
 
-  margin-bottom: 7px;
+    </div>
 
-  color: var(--muted);
+    ${
+      item.error_message
+        ? `
+          <div class="latest-item-error" style="margin-bottom:16px">
+            Processing error:
+            ${escapeHtml(item.error_message)}
+          </div>
+        `
+        : ""
+    }
 
-  font-size: 9px;
-  font-weight: 700;
-}
+    <h4 style="margin:0 0 12px;font-size:12px">
+      Available outputs
+    </h4>
 
-.details-metadata-item strong {
-  display: block;
+    <div class="details-output-list">
 
-  overflow-wrap: anywhere;
+      ${outputItems.map((entry) => `
+        <div class="details-output-item">
 
-  color: var(--ink);
+          <div>
+            <strong>${escapeHtml(entry.title)}</strong>
+            <p>${escapeHtml(entry.description)}</p>
+          </div>
 
-  font-size: 10px;
-  font-weight: 800;
-}
+          ${
+            entry.url
+              ? `
+                <a
+                  href="${escapeHtml(entry.url)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open ↗
+                </a>
+              `
+              : `
+                <span style="color:var(--muted);font-size:9px">
+                  Not available
+                </span>
+              `
+          }
 
-.details-output-list {
-  display: grid;
-  gap: 10px;
-}
+        </div>
+      `).join("")}
 
-.details-output-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  padding: 12px;
-
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-
-.details-output-item > div {
-  min-width: 0;
-}
-
-.details-output-item strong {
-  display: block;
-
-  color: var(--ink);
-
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.details-output-item p {
-  margin: 4px 0 0;
-
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.details-output-item a {
-  flex-shrink: 0;
-
-  color: var(--purple-dark);
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.details-output-item a:hover {
-  text-decoration: underline;
+    </div>
+  `;
 }
 
 
@@ -2916,184 +1845,223 @@ svg {
    IMAGE PREVIEW DIALOG
 ========================================================= */
 
-.image-preview-dialog {
-  width: min(92vw, 850px);
-  max-width: 850px;
-  max-height: 90vh;
+function openImagePreview(url, title = "Image preview") {
+  const safe = safeUrl(url);
 
-  padding: 0;
+  if (!safe) {
+    notify("This image does not have a valid preview URL.", true);
+    return;
+  }
 
-  overflow: hidden;
+  const dialog = $("image-preview-dialog");
 
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  $("image-preview-title").textContent = title;
+  $("image-preview-full").src = safe;
+  $("image-preview-full").alt = title;
 
-  background: var(--surface);
-  color: var(--ink);
+  $("image-preview-caption").textContent = title;
 
-  box-shadow: 0 25px 100px rgba(0, 0, 0, 0.2);
+  $("image-preview-download").href = safe;
+
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  } else {
+    window.open(
+      safe,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
 }
 
-.image-preview-dialog::backdrop {
-  background: rgba(24, 22, 42, 0.65);
-  backdrop-filter: blur(5px);
-}
 
-.image-preview-dialog-header,
-.image-preview-dialog-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
+function closeImagePreview() {
+  const dialog = $("image-preview-dialog");
 
-  padding: 14px 17px;
-}
+  if (dialog.open) {
+    dialog.close();
+  }
 
-.image-preview-dialog-header {
-  border-bottom: 1px solid var(--line);
-}
-
-.image-preview-dialog-header strong {
-  overflow: hidden;
-
-  color: var(--ink);
-
-  font-size: 11px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.image-preview-dialog-content {
-  min-height: 180px;
-  max-height: 65vh;
-
-  display: grid;
-  place-items: center;
-
-  padding: 20px;
-
-  overflow: auto;
-
-  background: var(--surface-muted);
-}
-
-.image-preview-dialog-content img {
-  max-width: 100%;
-  max-height: 60vh;
-
-  object-fit: contain;
-}
-
-.image-preview-dialog-footer {
-  border-top: 1px solid var(--line);
-}
-
-.image-preview-dialog-footer > span {
-  overflow: hidden;
-
-  color: var(--muted);
-
-  font-size: 9px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  $("image-preview-full").removeAttribute("src");
 }
 
 
 /* =========================================================
-   TOAST NOTIFICATIONS
+   CSV EXPORT
 ========================================================= */
 
-.toast {
-  position: fixed;
-  z-index: 100;
+function csvCell(value) {
+  let text = String(value ?? "");
 
-  right: 24px;
-  bottom: 24px;
+  /*
+   * Reduce the risk of spreadsheet formula injection.
+   */
 
-  max-width: min(420px, calc(100vw - 32px));
+  if (/^\s*[=+\-@]/.test(text)) {
+    text = "'" + text;
+  }
 
-  padding: 13px 17px;
-
-  border: 1px solid var(--line-dark);
-  border-radius: 11px;
-
-  background: var(--surface);
-  color: var(--ink);
-
-  box-shadow: 0 12px 35px rgba(37, 36, 59, 0.13);
-
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.6;
-
-  opacity: 0;
-  pointer-events: none;
-
-  transform: translateY(10px);
-
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
-.toast.show {
-  opacity: 1;
-  pointer-events: auto;
 
-  transform: translateY(0);
-}
+function exportHistoryCsv() {
+  const items = getVisibleHistory();
 
-.toast.error {
-  border-color: #ffd4d8;
+  if (!items.length) {
+    notify(
+      "There are no matching records to export.",
+      true
+    );
 
-  background: var(--red-light);
-  color: #a92f40;
+    return;
+  }
+
+  const headers = [
+    "Image ID",
+    "Filename",
+    "Upload Date",
+    "Status",
+    "Original URL",
+    "Resized URL",
+    "Thumbnail URL",
+    "Error"
+  ];
+
+  const rows = items.map((item) => [
+    item.image_id,
+    item.filename,
+    item.uploaded_at,
+    item.status,
+    item.original_url,
+    item.resized_url,
+    item.thumbnail_url,
+    item.error_message
+  ]);
+
+  const csv = [
+    headers,
+    ...rows
+  ]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\r\n");
+
+  const blob = new Blob(
+    ["\uFEFF", csv],
+    {
+      type: "text/csv;charset=utf-8;"
+    }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = url;
+
+  link.download =
+    `cloudpix-history-${new Date().toISOString().slice(0, 10)}.csv`;
+
+  document.body.appendChild(link);
+
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  notify(
+    `Exported ${items.length} image record${items.length === 1 ? "" : "s"}.`
+  );
 }
 
 
 /* =========================================================
-   APP FOOTER
+   REFRESH DASHBOARD
 ========================================================= */
 
-.app-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+async function refreshAll() {
+  if (refreshInProgress) {
+    return;
+  }
 
-  padding: 5px 3px 13px;
+  if (!apiBase()) {
+    allHistoryItems = [];
 
-  color: var(--muted);
-  font-size: 9px;
-}
+    updateStatistics();
+    renderHistory();
+    renderLatest(null);
 
-.footer-left,
-.footer-right {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
-}
+    $("history-summary").textContent =
+      "API endpoint not configured";
 
-.footer-logo {
-  color: var(--ink-soft);
-  font-weight: 800;
-}
+    $("history-body").innerHTML = `
+      <tr>
+        <td colspan="4" class="table-empty">
+          Click “AWS serverless” above to configure your deployed API endpoint.
+        </td>
+      </tr>
+    `;
 
-.footer-divider {
-  color: var(--line-dark);
-}
+    return;
+  }
 
-.footer-status-dot {
-  width: 6px;
-  height: 6px;
+  refreshInProgress = true;
 
-  border-radius: 50%;
+  $("refresh-btn").disabled = true;
 
-  background: var(--green);
+  try {
+    const result = await api("/history");
+
+    allHistoryItems = Array.isArray(result.items)
+      ? result.items
+      : [];
+
+    updateStatistics();
+    renderHistory();
+
+    if (latestImageId) {
+      const latest = allHistoryItems.find(
+        (item) => item.image_id === latestImageId
+      );
+
+      if (latest) {
+        renderLatest(latest);
+      }
+    }
+
+    /*
+     * If the details panel is open, refresh its record too.
+     */
+
+    if (currentDetailImageId) {
+      const updatedDetail = allHistoryItems.find(
+        (item) => item.image_id === currentDetailImageId
+      );
+
+      if (updatedDetail) {
+        renderImageDetails(updatedDetail);
+      }
+    }
+
+  } catch (error) {
+    $("history-body").innerHTML = `
+      <tr>
+        <td colspan="4" class="table-empty">
+          ${escapeHtml(error.message)}
+        </td>
+      </tr>
+    `;
+
+    $("history-summary").textContent =
+      "Could not load history";
+
+    notify(error.message, true);
+
+  } finally {
+    refreshInProgress = false;
+
+    $("refresh-btn").disabled = false;
+  }
 }
 
 
@@ -3101,825 +2069,412 @@ svg {
    DARK MODE
 ========================================================= */
 
-html[data-theme="dark"] {
-  color-scheme: dark;
+function setTheme(theme) {
+  const normalized =
+    theme === "dark" ? "dark" : "light";
 
-  --page-bg: #11111a;
-  --surface: #191925;
-  --surface-soft: #1e1d2d;
-  --surface-muted: #242336;
+  document.documentElement.dataset.theme = normalized;
 
-  --ink: #f0effb;
-  --ink-soft: #c4c2dc;
-  --muted: #a09eb9;
-  --muted-light: #85839f;
+  const button = $("theme-toggle");
 
-  --purple: #a296ff;
-  --purple-dark: #b6adff;
-  --purple-light: #2d294a;
-  --purple-border: #46406d;
-
-  --blue: #83aaff;
-  --blue-light: #202c47;
-
-  --green: #5bd6a5;
-  --green-light: #1d382f;
-
-  --amber: #f1c36a;
-  --amber-light: #3b3020;
-
-  --red: #ff8995;
-  --red-light: #3b242b;
-
-  --line: #2b2a3c;
-  --line-dark: #3b394f;
-
-  --shadow-sm:
-    0 2px 8px rgba(0, 0, 0, 0.12);
-
-  --shadow-md:
-    0 8px 28px rgba(0, 0, 0, 0.18);
-
-  --shadow-purple:
-    0 8px 22px rgba(113, 96, 232, 0.14);
-}
-
-html[data-theme="dark"] .sidebar,
-html[data-theme="dark"] .topbar,
-html[data-theme="dark"] .panel,
-html[data-theme="dark"] .stat-card,
-html[data-theme="dark"] .history-grid-card,
-html[data-theme="dark"] .result-card {
-  border-color: var(--line);
-}
-
-html[data-theme="dark"] .brand-mark svg {
-  filter: brightness(1.05);
-}
-
-html[data-theme="dark"] .nav-item.active {
-  border-color: var(--purple-border);
-}
-
-html[data-theme="dark"] .cloud-badge {
-  border-color: var(--purple-border);
-}
-
-html[data-theme="dark"] .cloud-badge:hover {
-  background: #393359;
-}
-
-html[data-theme="dark"] .profile-avatar {
-  border-color: var(--surface);
-  box-shadow: 0 0 0 1px var(--purple-border);
-}
-
-html[data-theme="dark"] .upload-illustration-ring {
-  border-color: var(--purple-border);
-  background: var(--surface-muted);
-}
-
-html[data-theme="dark"] .upload-illustration-icon {
-  border-color: var(--line-dark);
-}
-
-html[data-theme="dark"] .secure-indicator {
-  border-color: #285343;
-  color: var(--green);
-}
-
-html[data-theme="dark"] .visual-image-card {
-  border-color: var(--line-dark);
-}
-
-html[data-theme="dark"] .visual-floating-chip {
-  border-color: var(--line-dark);
-}
-
-html[data-theme="dark"] .pill.pending {
-  border-color: #594626;
-  color: #f1c36a;
-}
-
-html[data-theme="dark"] .pill.processing {
-  border-color: #33486c;
-  color: #91b3ff;
-}
-
-html[data-theme="dark"] .pill.completed {
-  border-color: #285343;
-  color: #5bd6a5;
-}
-
-html[data-theme="dark"] .pill.failed {
-  border-color: #64363f;
-  color: #ff8995;
-}
-
-html[data-theme="dark"] .toast.error {
-  border-color: #64363f;
-  background: #3b242b;
-  color: #ffadb5;
-}
-
-html[data-theme="dark"] .button-primary {
-  background: linear-gradient(
-    135deg,
-    #7969ef,
-    #5d49d9
+  button.setAttribute(
+    "aria-label",
+    normalized === "dark"
+      ? "Switch to light theme"
+      : "Switch to dark theme"
   );
 
-  color: #ffffff;
-}
+  button.title =
+    normalized === "dark"
+      ? "Switch to light theme"
+      : "Switch to dark theme";
 
-html[data-theme="dark"] .theme-icon-sun {
-  display: none;
-}
-
-html[data-theme="dark"] .theme-icon-moon {
-  display: block;
-}
-
-
-/* =========================================================
-   ANIMATIONS
-========================================================= */
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(7px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  try {
+    localStorage.setItem(
+      THEME_STORAGE_KEY,
+      normalized
+    );
+  } catch (_) {
+    // Theme still works for the current session.
   }
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
 
-  50% {
-    transform: translateY(-5px);
-  }
+function toggleTheme() {
+  const current =
+    document.documentElement.dataset.theme || "light";
+
+  setTheme(
+    current === "dark" ? "light" : "dark"
+  );
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-.is-loading svg {
-  animation: spin 850ms linear infinite;
+function initializeTheme() {
+  let savedTheme = "light";
+
+  try {
+    savedTheme =
+      localStorage.getItem(THEME_STORAGE_KEY) || "light";
+  } catch (_) {
+    // Use the default theme.
+  }
+
+  setTheme(savedTheme);
 }
 
 
 /* =========================================================
-   RESPONSIVE: LARGE TABLETS
+   NAVIGATION
 ========================================================= */
 
-@media (max-width: 1250px) {
-  :root {
-    --sidebar-width: 225px;
-  }
+function initializeNavigation() {
+  const links = document.querySelectorAll("[data-nav]");
 
-  .sidebar {
-    padding-right: 15px;
-    padding-left: 15px;
-  }
+  links.forEach((link) => {
+    link.addEventListener("click", () => {
+      links.forEach((entry) => {
+        entry.classList.remove("active");
+      });
 
-  .topbar {
-    padding-right: 26px;
-    padding-left: 26px;
-  }
+      link.classList.add("active");
 
-  .page-content {
-    padding-right: 26px;
-    padding-left: 26px;
-  }
+      const label = link.querySelector("span:nth-child(2)");
 
-  .page-heading-visual {
-    width: 210px;
-  }
-
-  .stats-grid {
-    gap: 11px;
-  }
-
-  .stat-card {
-    padding: 16px 14px;
-  }
-
-  .stat-label {
-    font-size: 7px;
-    letter-spacing: 0.55px;
-  }
-
-  .history-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .history-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .history-search {
-    max-width: none;
-  }
-
-  .history-controls {
-    flex-wrap: wrap;
-  }
+      if (label) {
+        $("breadcrumb-current").textContent =
+          label.textContent.trim();
+      }
+    });
+  });
 }
 
 
 /* =========================================================
-   RESPONSIVE: TABLETS
+   KEYBOARD SHORTCUTS
 ========================================================= */
 
-@media (max-width: 960px) {
-  :root {
-    --sidebar-width: 76px;
-  }
+function initializeKeyboardShortcuts() {
+  document.addEventListener("keydown", (event) => {
+    const target = event.target;
 
-  .sidebar {
-    align-items: center;
+    const isTyping =
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      target.isContentEditable;
 
-    padding: 23px 10px 15px;
-  }
+    /*
+     * Press "/" to focus history search.
+     */
 
-  .brand {
-    justify-content: center;
+    if (
+      event.key === "/" &&
+      !isTyping &&
+      !$("image-preview-dialog").open
+    ) {
+      event.preventDefault();
+      $("history-search").focus();
+    }
 
-    width: 100%;
+    /*
+     * Escape closes the image preview dialog.
+     */
 
-    padding: 0 0 29px;
-  }
-
-  .brand-mark,
-  .brand-mark svg {
-    width: 36px;
-    height: 36px;
-  }
-
-  .brand-copy,
-  .sidebar-label,
-  .nav-item > span:not(.nav-icon):not(.nav-indicator),
-  .sidebar-feature > div,
-  .sidebar-info-card > div:not(.sidebar-info-icon),
-  .sidebar-footer {
-    display: none;
-  }
-
-  .sidebar-section {
-    width: 100%;
-  }
-
-  .sidebar-nav {
-    justify-items: center;
-  }
-
-  .nav-item {
-    width: 45px;
-    height: 45px;
-    min-height: 45px;
-
-    justify-content: center;
-
-    padding: 0;
-  }
-
-  .nav-icon {
-    width: 22px;
-    height: 22px;
-  }
-
-  .nav-indicator {
-    position: absolute;
-
-    right: 4px;
-    top: 8px;
-
-    width: 5px;
-    height: 5px;
-
-    margin: 0;
-  }
-
-  .sidebar-feature {
-    justify-content: center;
-
-    padding: 12px 0;
-  }
-
-  .sidebar-bottom {
-    width: 100%;
-  }
-
-  .sidebar-info-card {
-    justify-content: center;
-
-    padding: 10px 0;
-  }
-
-  .sidebar-info-icon {
-    width: 35px;
-    height: 35px;
-  }
-
-  .page-heading-visual {
-    width: 175px;
-
-    transform: scale(0.9);
-    transform-origin: center right;
-  }
-
-  .page-heading h2 {
-    font-size: 32px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat-card {
-    min-height: 130px;
-    padding: 17px;
-  }
-
-  .stat-label {
-    font-size: 8px;
-  }
-
-  .result-grid {
-    gap: 10px;
-  }
-
-  .result-image {
-    height: 145px;
-  }
-
-  .panel {
-    padding: 20px;
-  }
-
-  .history-panel {
-    padding-bottom: 0;
-  }
-
-  .history-heading {
-    flex-direction: column;
-  }
-
-  .history-heading-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
+    if (
+      event.key === "Escape" &&
+      $("image-preview-dialog").open
+    ) {
+      closeImagePreview();
+    }
+  });
 }
 
 
 /* =========================================================
-   RESPONSIVE: MOBILE
+   EVENT LISTENERS
 ========================================================= */
 
-@media (max-width: 640px) {
-  :root {
-    --sidebar-width: 0px;
-  }
+function initializeEventListeners() {
 
-  html {
-    scroll-padding-top: 78px;
-  }
+  /* API endpoint */
 
-  .sidebar {
-    display: none;
-  }
+  document.querySelector(".cloud-badge")
+    .addEventListener("click", setApiBase);
 
-  .main-content {
-    margin-left: 0;
-  }
 
-  .topbar {
-    min-height: 62px;
+  /* File selection */
 
-    padding: 10px 15px;
-  }
+  $("choose-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
 
-  .breadcrumb {
-    gap: 6px;
-    font-size: 10px;
-  }
+    if (!isUploading) {
+      $("file-input").click();
+    }
+  });
 
-  .topbar-actions {
-    gap: 7px;
-  }
 
-  .cloud-badge {
-    min-height: 33px;
-    gap: 6px;
+  $("dropzone").addEventListener("click", (event) => {
+    if (
+      event.target.closest("#choose-btn") ||
+      event.target.closest("#file-input")
+    ) {
+      return;
+    }
 
-    padding: 0 8px;
-  }
+    if (!isUploading) {
+      $("file-input").click();
+    }
+  });
 
-  .cloud-badge-label {
-    max-width: 78px;
 
-    overflow: hidden;
+  $("dropzone").addEventListener("keydown", (event) => {
+    if (
+      event.key === "Enter" ||
+      event.key === " "
+    ) {
+      event.preventDefault();
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+      if (!isUploading) {
+        $("file-input").click();
+      }
+    }
+  });
 
-    font-size: 9px;
-  }
 
-  .cloud-badge svg {
-    display: none;
-  }
+  $("file-input").addEventListener("change", (event) => {
+    addFiles(event.target.files);
 
-  .icon-button {
-    width: 33px;
-    height: 33px;
-  }
+    /*
+     * Clear the native input so the same file can be selected again.
+     */
 
-  .profile-avatar {
-    width: 31px;
-    height: 31px;
-  }
+    event.target.value = "";
+  });
 
-  .page-content {
-    padding: 23px 13px 13px;
-  }
 
-  .page-heading {
-    min-height: 0;
+  /* Drag and drop */
 
-    margin-bottom: 23px;
-    padding: 3px 2px;
-  }
+  $("dropzone").addEventListener("dragover", (event) => {
+    event.preventDefault();
 
-  .page-heading-copy {
-    max-width: 100%;
-  }
+    if (!isUploading) {
+      $("dropzone").classList.add("dragover");
+    }
+  });
 
-  .eyebrow {
-    margin-bottom: 12px;
 
-    font-size: 8px;
-    letter-spacing: 0.9px;
-  }
+  $("dropzone").addEventListener("dragleave", (event) => {
+    if (
+      !event.relatedTarget ||
+      !$("dropzone").contains(event.relatedTarget)
+    ) {
+      $("dropzone").classList.remove("dragover");
+    }
+  });
 
-  .page-heading h2 {
-    font-size: 30px;
-    letter-spacing: -1.1px;
-  }
 
-  .page-heading-copy > p {
-    margin-top: 10px;
+  $("dropzone").addEventListener("drop", (event) => {
+    event.preventDefault();
 
-    font-size: 11px;
-    line-height: 1.8;
-  }
+    $("dropzone").classList.remove("dragover");
 
-  .page-heading-visual {
-    display: none;
-  }
+    if (!isUploading) {
+      addFiles(event.dataTransfer.files);
+    }
+  });
 
-  .stats-grid {
-    gap: 10px;
 
-    margin-bottom: 17px;
-  }
+  /* Queue */
 
-  .stat-card {
-    min-height: 121px;
+  $("upload-queue-list").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-remove-queue]");
 
-    padding: 13px;
-  }
+    if (!button) {
+      return;
+    }
 
-  .stat-icon {
-    width: 31px;
-    height: 31px;
-  }
+    removeQueueItem(
+      button.dataset.removeQueue
+    );
+  });
 
-  .stat-icon svg {
-    width: 15px;
-    height: 15px;
-  }
 
-  .stat-label {
-    font-size: 7px;
-    letter-spacing: 0.3px;
-  }
+  $("clear-queue-btn").addEventListener("click", clearQueue);
 
-  .stat-value {
-    margin-top: 13px;
 
-    font-size: 25px;
-  }
+  /* Upload */
 
-  .stat-description {
-    font-size: 9px;
-  }
+  $("upload-btn").addEventListener("click", uploadSelected);
 
-  .panel {
-    margin-bottom: 16px;
-    padding: 17px;
 
-    border-radius: 15px;
-  }
-
-  .panel-heading {
-    flex-direction: column;
-    gap: 13px;
-
-    margin-bottom: 18px;
-  }
+  /* Refresh history */
 
-  .panel-heading h3 {
-    font-size: 17px;
-  }
+  $("refresh-btn").addEventListener("click", refreshAll);
 
-  .panel-heading-copy > p {
-    font-size: 10px;
-  }
 
-  .secure-indicator,
-  .output-format-badge {
-    align-self: flex-start;
-  }
-
-  .dropzone {
-    min-height: 240px;
-    padding: 22px 12px;
-  }
+  /* History search */
 
-  .dropzone h4 {
-    font-size: 14px;
-  }
+  $("history-search").addEventListener("input", (event) => {
+    historySearch = event.target.value.trim();
 
-  .file-rules {
-    max-width: 260px;
+    renderHistory();
+  });
 
-    line-height: 1.8;
-  }
 
-  .upload-actions {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 13px;
-  }
+  /* Status filter */
 
-  .upload-actions .button-primary {
-    width: 100%;
-  }
-
-  .upload-note {
-    font-size: 9px;
-  }
-
-  .selected-file {
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .selected-file > img {
-    width: 51px;
-    height: 51px;
-  }
+  $("history-filter").addEventListener("change", (event) => {
+    historyStatus = event.target.value;
 
-  .selected-file-info strong {
-    font-size: 10px;
-  }
-
-  .upload-queue {
-    padding: 11px;
-  }
-
-  .upload-queue-heading {
-    align-items: flex-start;
-  }
-
-  .upload-queue-heading .button {
-    white-space: normal;
-  }
-
-  .result-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .result-image {
-    height: 220px;
-  }
-
-  .history-heading-actions {
-    justify-content: flex-start;
-  }
-
-  .history-heading-actions .button {
-    flex: 1;
-  }
-
-  .history-toolbar {
-    gap: 12px;
-  }
-
-  .history-controls {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 7px;
-  }
-
-  .history-controls select {
-    width: 100%;
-    max-width: none;
-
-    min-width: 0;
-    padding-right: 18px;
-
-    font-size: 9px;
-  }
-
-  .control-label {
-    font-size: 8px;
-  }
-
-  .history-meta {
-    align-items: flex-start;
-    flex-direction: column;
-
-    padding: 8px 0;
-  }
-
-  .view-toggle {
-    align-self: flex-end;
-  }
-
-  .table-scroll {
-    border-radius: 9px;
-  }
-
-  .history-table {
-    min-width: 650px;
-  }
-
-  .history-table th,
-  .history-table td {
-    padding: 11px 10px;
-  }
-
-  .history-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
-  }
-
-  .history-grid-image {
-    height: 115px;
-    padding: 8px;
-  }
-
-  .history-grid-card-body {
-    padding: 9px;
-  }
-
-  .history-grid-title {
-    font-size: 9px;
-  }
-
-  .history-grid-meta {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .history-footer {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-
-    padding: 13px 0;
-  }
-
-  .history-footer-note {
-    align-items: flex-start;
-    font-size: 8px;
-  }
-
-  .app-footer {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-
-    padding: 5px 3px 15px;
-  }
-
-  .details-metadata {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .details-output-item {
-    align-items: flex-start;
-  }
-
-  .image-preview-dialog {
-    width: calc(100vw - 20px);
-    max-height: 92vh;
-  }
-
-  .image-preview-dialog-content {
-    padding: 12px;
-  }
-
-  .image-preview-dialog-footer {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .toast {
-    right: 12px;
-    bottom: 12px;
-
-    max-width: calc(100vw - 24px);
-  }
+    renderHistory();
+  });
+
+
+  /* Sorting */
+
+  $("history-sort").addEventListener("change", (event) => {
+    historySort = event.target.value;
+
+    renderHistory();
+  });
+
+
+  /* CSV export */
+
+  $("export-btn").addEventListener("click", exportHistoryCsv);
+
+
+  /* Table and grid views */
+
+  $("view-table-btn").addEventListener("click", () => {
+    setHistoryView("table");
+  });
+
+
+  $("view-grid-btn").addEventListener("click", () => {
+    setHistoryView("grid");
+  });
+
+
+  /* Dark mode */
+
+  $("theme-toggle").addEventListener("click", toggleTheme);
+
+
+  /* Close image details */
+
+  $("close-details-btn").addEventListener("click", () => {
+    currentDetailImageId = null;
+
+    $("image-details-panel").hidden = true;
+  });
+
+
+  /* Image preview dialog */
+
+  $("close-image-preview-btn").addEventListener(
+    "click",
+    closeImagePreview
+  );
+
+
+  $("image-preview-dialog").addEventListener("click", (event) => {
+    if (event.target === $("image-preview-dialog")) {
+      closeImagePreview();
+    }
+  });
+
+
+  /*
+   * Delegated event handling for dynamically generated content:
+   * previews and history detail buttons.
+   */
+
+  document.addEventListener("click", (event) => {
+
+    const previewImage = event.target.closest(
+      "[data-preview-url]"
+    );
+
+    if (previewImage) {
+      openImagePreview(
+        previewImage.dataset.previewUrl,
+        previewImage.dataset.previewTitle || "Image preview"
+      );
+
+      return;
+    }
+
+    const detailsButton = event.target.closest(
+      "[data-details-id]"
+    );
+
+    if (detailsButton) {
+      showImageDetails(
+        detailsButton.dataset.detailsId
+      );
+    }
+  });
 }
 
 
 /* =========================================================
-   RESPONSIVE: VERY SMALL SCREENS
+   APPLICATION INITIALIZATION
 ========================================================= */
 
-@media (max-width: 380px) {
-  .page-content {
-    padding-right: 10px;
-    padding-left: 10px;
+function initializeApplication() {
+
+  initializeTheme();
+
+  initializeNavigation();
+
+  initializeKeyboardShortcuts();
+
+  initializeEventListeners();
+
+
+  /* Restore table/grid preference */
+
+  try {
+    const savedView =
+      localStorage.getItem(VIEW_STORAGE_KEY);
+
+    if (
+      savedView === "table" ||
+      savedView === "grid"
+    ) {
+      historyView = savedView;
+    }
+  } catch (_) {
+    // Default to table view.
   }
 
-  .topbar {
-    padding-right: 10px;
-    padding-left: 10px;
-  }
 
-  .cloud-badge {
-    padding: 0 7px;
-  }
+  /* Initial UI state */
 
-  .cloud-badge-label {
-    max-width: 65px;
-  }
+  renderUploadQueue();
 
-  .breadcrumb {
-    font-size: 9px;
-  }
+  renderHistory();
 
-  .page-heading h2 {
-    font-size: 27px;
-  }
+  renderLatest(null);
 
-  .stat-card {
-    padding: 11px;
-  }
+  updateStatistics();
 
-  .stat-value {
-    font-size: 23px;
-  }
 
-  .panel {
-    padding: 13px;
-  }
+  /* Load backend data when an endpoint is configured */
 
-  .history-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .history-grid-image {
-    height: 170px;
-  }
-
-  .history-controls {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
+  refreshAll();
 }
 
 
-/* =========================================================
-   REDUCED MOTION ACCESSIBILITY
-========================================================= */
+/* Start after the DOM is ready. */
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-
-    transition-duration: 0.01ms !important;
-  }
+if (document.readyState === "loading") {
+  document.addEventListener(
+    "DOMContentLoaded",
+    initializeApplication
+  );
+} else {
+  initializeApplication();
 }
