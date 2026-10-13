@@ -5,9 +5,16 @@ import uuid
 from datetime import datetime, timezone
 
 import boto3
+from botocore.config import Config
 
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
-s3 = boto3.client("s3", region_name=AWS_REGION)
+
+s3 = boto3.client(
+    "s3",
+    region_name=AWS_REGION,
+    config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+)
+
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 TABLE = dynamodb.Table(os.environ.get("TABLE_NAME", "cloudpix-local-test"))
 BUCKET = os.environ.get("BUCKET_NAME", "cloudpix-local-test")
