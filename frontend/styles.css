@@ -4026,3 +4026,507 @@ button[aria-label="Close preview"]:hover {
 /* =========================================================
    END OF CLOUDPIX STYLESHEET
    ========================================================= */
+/* =========================================================
+   CLOUDPIX — VISUAL LAYOUT FIXES
+   Append this section to the END of styles.css
+========================================================= */
+
+/* ---------- 1. Prevent horizontal overflow ---------- */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.app-shell,
+.main-content,
+.main,
+.workspace,
+.page-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img {
+  max-width: 100%;
+}
+
+
+/* ---------- 2. Keep SVG icons from becoming oversized ---------- */
+
+/* Standard icons should remain compact. */
+.sidebar svg,
+.sidebar-nav svg,
+.brand-mark svg,
+.icon-button svg,
+.button svg,
+.cloud-badge svg,
+.secure-indicator svg,
+.output-format-badge svg,
+.upload-illustration-icon svg {
+  width: 18px;
+  height: 18px;
+  max-width: 100%;
+  max-height: 100%;
+  flex-shrink: 0;
+}
+
+/* The brand icon has its own compact dimensions. */
+.brand-mark svg {
+  width: 34px;
+  height: 34px;
+}
+
+/* Upload illustration: never allow the icon to fill the panel. */
+.upload-illustration {
+  width: 67px;
+  height: 67px;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.upload-illustration-ring {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-illustration-icon {
+  width: 51px;
+  height: 51px;
+}
+
+.upload-illustration-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+
+/* ---------- 3. Keep the security indicator compact ---------- */
+
+.secure-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.secure-indicator svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+
+/* ---------- 4. Keep the upload area organized ---------- */
+
+.upload-panel {
+  min-width: 0;
+}
+
+.dropzone {
+  width: 100%;
+  min-width: 0;
+  min-height: 220px;
+  padding: 30px 20px;
+  overflow: hidden;
+}
+
+.dropzone-content {
+  width: 100%;
+  max-width: 100%;
+}
+
+.dropzone-content > * {
+  max-width: 100%;
+}
+
+.dropzone-content > svg {
+  width: 24px;
+  height: 24px;
+}
+
+.upload-queue {
+  width: 100%;
+  min-width: 0;
+  margin-top: 18px;
+}
+
+.upload-queue-list {
+  width: 100%;
+  min-width: 0;
+}
+
+.queue-item {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.queue-item-preview {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.queue-item-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+
+/* ---------- 5. Organize the latest processing results ---------- */
+
+.latest-result {
+  width: 100%;
+  min-width: 0;
+}
+
+.latest-item-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.latest-item-heading > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+  width: 100%;
+  min-width: 0;
+}
+
+.result-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.result-card-header {
+  min-width: 0;
+  padding: 15px 15px 12px;
+}
+
+.result-card-header strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.result-card-header > span {
+  display: block;
+  margin-top: 4px;
+}
+
+.result-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 220px;
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.result-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+}
+
+.result-image > span {
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.result-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  margin-top: auto;
+  padding: 14px 15px;
+}
+
+.result-copy > strong {
+  overflow-wrap: anywhere;
+}
+
+.result-copy .download-link {
+  margin-top: 4px;
+}
+
+
+/* ---------- 6. Improve processing history ---------- */
+
+.history-panel {
+  min-width: 0;
+  width: 100%;
+}
+
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.history-search,
+.history-controls {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-controls select,
+.history-search input {
+  max-width: 100%;
+}
+
+.history-table-view {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.history-table-view table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+  min-width: 0;
+}
+
+.history-grid-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.history-grid-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.history-grid-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.history-grid-card-body {
+  min-width: 0;
+}
+
+.history-grid-title,
+.history-grid-id {
+  overflow-wrap: anywhere;
+}
+
+
+/* ---------- 7. Improve the image preview dialog ---------- */
+
+.image-preview-dialog {
+  width: min(920px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 90px rgba(24, 22, 48, 0.24);
+}
+
+.image-preview-dialog::backdrop {
+  background: rgba(24, 22, 48, 0.64);
+  backdrop-filter: blur(5px);
+}
+
+.image-preview-dialog-header,
+.image-preview-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.image-preview-dialog-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.image-preview-dialog-header strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.image-preview-dialog-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 180px;
+  max-height: 65dvh;
+  padding: 20px;
+  overflow: auto;
+  background: var(--surface-muted);
+}
+
+.image-preview-dialog-content img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 60dvh;
+  object-fit: contain;
+}
+
+.image-preview-dialog-footer {
+  border-top: 1px solid var(--line);
+}
+
+#image-preview-caption {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#image-preview-download {
+  flex-shrink: 0;
+}
+
+
+/* ---------- 8. Keep the empty-state illustration small ---------- */
+
+.empty-state-illustration {
+  width: 80px;
+  height: 68px;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.empty-state-illustration svg {
+  width: 80px;
+  height: 68px;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+
+/* ---------- 9. Responsive layout ---------- */
+
+@media (max-width: 1000px) {
+  .result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .result-grid,
+  .history-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .result-image {
+    height: 240px;
+  }
+
+  .history-grid-image {
+    height: 220px;
+  }
+
+  .dropzone {
+    min-height: 190px;
+    padding: 24px 14px;
+  }
+
+  .upload-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upload-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .history-toolbar,
+  .history-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .history-controls select,
+  .history-search input {
+    width: 100%;
+  }
+
+  .image-preview-dialog {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .image-preview-dialog-content {
+    padding: 12px;
+  }
+
+  .image-preview-dialog-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #image-preview-download {
+    width: 100%;
+    justify-content: center;
+  }
+}
