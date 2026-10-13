@@ -336,6 +336,199 @@ function safeLink(rawUrl, label, className = "") {
 
 
 /* =========================================================
+   DOWNLOAD HELPERS
+========================================================= */
+
+/*
+ * Determine a reasonable filename extension.
+ * Prefer the actual URL extension when available.
+ * Fall back to the original filename or JPEG.
+ */
+
+function getImageExtension(rawUrl, originalFilename = "") {
+  const knownExtensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "avif"
+  ];
+
+  try {
+    const parsed = new URL(
+      rawUrl,
+      window.location.href
+    );
+
+    const path = decodeURIComponent(parsed.pathname);
+    const match = path.match(/\.([a-z0-9]+)$/i);
+
+    if (
+      match &&
+      knownExtensions.includes(match[1].toLowerCase())
+    ) {
+      return match[1].toLowerCase();
+    }
+  } catch (_) {
+    // Try the original filename below.
+  }
+
+  const filenameMatch = String(originalFilename || "")
+    .match(/\.([a-z0-9]+)$/i);
+
+  if (
+    filenameMatch &&
+    knownExtensions.includes(filenameMatch[1].toLowerCase())
+  ) {
+    return filenameMatch[1].toLowerCase();
+  }
+
+  return "jpg";
+}
+
+
+/*
+ * Build a filename for the requested output variant.
+ */
+
+function makeDownloadFilename(item, variant, rawUrl) {
+  const originalName =
+    String(item?.filename || "cloudpix-image")
+      .replace(/[\\/:*?"<>|]/g, "_");
+
+  const baseName = originalName.replace(/\.[^.]+$/, "");
+
+  const extension = getImageExtension(
+    rawUrl,
+    item?.filename
+  );
+
+  if (variant === "original") {
+    return `${baseName}.${extension}`;
+  }
+
+  if (variant === "resized") {
+    return `${baseName}-resized.${extension}`;
+  }
+
+  if (variant === "thumbnail") {
+    return `${baseName}-thumbnail.${extension}`;
+  }
+
+  return `${baseName}.${extension}`;
+}
+
+
+/*
+ * Render a download button.
+ *
+ * The data attributes are handled by the delegated
+ * click listener in Part 2.
+ */
+
+function downloadButton(rawUrl, filename, label, className = "") {
+  const url = safeUrl(rawUrl);
+
+  if (!url) {
+    return "";
+  }
+
+  return `
+    <button
+      type="button"
+      class="download-link ${escapeHtml(className)}"
+      data-download-url="${escapeHtml(url)}"
+      data-download-filename="${escapeHtml(filename)}"
+    >
+      ${escapeHtml(label)}
+    </button>
+  `;
+}
+
+
+/*
+ * Fetch an image as a Blob and download it.
+ *
+ * Note:
+ * The remote image host must permit browser access
+ * through CORS. For CloudPix, check the S3 bucket's
+ * CORS configuration if this operation fails.
+ */
+
+async function downloadImage(rawUrl, filename, button = null) {
+  const url = safeUrl(rawUrl);
+
+  if (!url) {
+    notify("This image does not have a valid download URL.", true);
+    return;
+  }
+
+  if (button?.dataset.downloading === "true") {
+    return;
+  }
+
+  const originalText = button?.textContent || "";
+
+  try {
+    if (button) {
+      button.dataset.downloading = "true";
+      button.disabled = true;
+      button.textContent = "Downloading…";
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(
+        `Image download failed with status ${response.status}.`
+      );
+    }
+
+    const blob = await response.blob();
+
+    if (!blob.size) {
+      throw new Error("The downloaded image is empty.");
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = filename || "cloudpix-image.jpg";
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 1500);
+
+    notify(`Downloaded ${filename || "image"}.`);
+
+  } catch (error) {
+    console.error("CloudPix download error:", error);
+
+    notify(
+      `${error.message} If the issue persists, check the S3 CORS configuration and the presigned URL expiry.`,
+      true
+    );
+
+  } finally {
+    if (button) {
+      button.dataset.downloading = "false";
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
+
+/* =========================================================
    FILE VALIDATION
 ========================================================= */
 
@@ -1077,7 +1270,6 @@ function stopPolling(imageId) {
   }
 }
 
-
 /* =========================================================
    HISTORY DATA MANAGEMENT
 ========================================================= */
@@ -1188,7 +1380,7 @@ function getVisibleHistory() {
 
 
 /* =========================================================
-   HISTORY OUTPUT LINKS
+   HISTORY OUTPUT DOWNLOAD BUTTONS
 ========================================================= */
 
 function outputs(item) {
@@ -1200,19 +1392,31 @@ function outputs(item) {
 
   if (original) {
     links.push(
-      safeLink(original, "Original ↗")
+      downloadButton(
+        original,
+        makeDownloadFilename(item, "original", original),
+        "Original ↓"
+      )
     );
   }
 
   if (resized) {
     links.push(
-      safeLink(resized, "Resized ↗")
+      downloadButton(
+        resized,
+        makeDownloadFilename(item, "resized", resized),
+        "Resized ↓"
+      )
     );
   }
 
   if (thumbnail) {
     links.push(
-      safeLink(thumbnail, "Thumbnail ↗")
+      downloadButton(
+        thumbnail,
+        makeDownloadFilename(item, "thumbnail", thumbnail),
+        "Thumbnail ↓"
+      )
     );
   }
 
@@ -1340,7 +1544,9 @@ function renderHistoryGrid(items) {
 
   grid.innerHTML = items.map((item) => {
     const thumbnail = safeUrl(
-      item.thumbnail_url || item.resized_url || item.original_url
+      item.thumbnail_url ||
+      item.resized_url ||
+      item.original_url
     );
 
     return `
@@ -1361,9 +1567,11 @@ function renderHistoryGrid(items) {
               `
               : `
                 <span class="grid-no-image">
-                  ${normalizeStatus(item.status) === "Failed"
-                    ? "Image unavailable"
-                    : "Processing image…"}
+                  ${
+                    normalizeStatus(item.status) === "Failed"
+                      ? "Image unavailable"
+                      : "Processing image…"
+                  }
                 </span>
               `
           }
@@ -1535,16 +1743,19 @@ function renderLatest(item) {
 
   const cards = [
     {
+      variant: "original",
       title: "Original image",
       subtitle: "Original upload",
       url: item.original_url
     },
     {
+      variant: "resized",
       title: "Resized image",
       subtitle: "Maximum 800 × 800",
       url: item.resized_url
     },
     {
+      variant: "thumbnail",
       title: "Thumbnail",
       subtitle: "Maximum 200 × 200",
       url: item.thumbnail_url
@@ -1576,6 +1787,12 @@ function renderLatest(item) {
 
       ${cards.map((card) => {
         const url = safeUrl(card.url);
+
+        const filename = makeDownloadFilename(
+          item,
+          card.variant,
+          url
+        );
 
         return `
           <article class="result-card">
@@ -1621,16 +1838,11 @@ function renderLatest(item) {
 
               ${
                 url
-                  ? `
-                    <a
-                      class="download-link"
-                      href="${escapeHtml(url)}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open / download ↗
-                    </a>
-                  `
+                  ? downloadButton(
+                      url,
+                      filename,
+                      "Download ↓"
+                    )
                   : ""
               }
 
@@ -1674,11 +1886,6 @@ async function showImageDetails(imageId) {
   });
 
   try {
-    /*
-     * This uses the existing image-detail endpoint.
-     * It does not require a new backend route.
-     */
-
     const item = await api(
       `/images/${encodeURIComponent(imageId)}`
     );
@@ -1736,22 +1943,26 @@ function renderImageDetails(item) {
     },
     {
       label: "Resized output",
-      value: item.resized_key || (resized ? "Available" : "Not available")
+      value: item.resized_key ||
+        (resized ? "Available" : "Not available")
     }
   ];
 
   const outputItems = [
     {
+      variant: "original",
       title: "Original image",
       url: original,
       description: "The image uploaded by the user."
     },
     {
+      variant: "resized",
       title: "Resized image",
       url: resized,
       description: "The optimized image generated by CloudPix."
     },
     {
+      variant: "thumbnail",
       title: "Thumbnail",
       url: thumbnail,
       description: "The smaller preview generated by CloudPix."
@@ -1817,15 +2028,15 @@ function renderImageDetails(item) {
 
           ${
             entry.url
-              ? `
-                <a
-                  href="${escapeHtml(entry.url)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open ↗
-                </a>
-              `
+              ? downloadButton(
+                  entry.url,
+                  makeDownloadFilename(
+                    item,
+                    entry.variant,
+                    entry.url
+                  ),
+                  "Download ↓"
+                )
               : `
                 <span style="color:var(--muted);font-size:9px">
                   Not available
@@ -1845,7 +2056,11 @@ function renderImageDetails(item) {
    IMAGE PREVIEW DIALOG
 ========================================================= */
 
-function openImagePreview(url, title = "Image preview") {
+function openImagePreview(
+  url,
+  title = "Image preview",
+  filename = "cloudpix-image.jpg"
+) {
   const safe = safeUrl(url);
 
   if (!safe) {
@@ -1861,7 +2076,11 @@ function openImagePreview(url, title = "Image preview") {
 
   $("image-preview-caption").textContent = title;
 
-  $("image-preview-download").href = safe;
+  const downloadLink = $("image-preview-download");
+
+  downloadLink.href = safe;
+  downloadLink.dataset.downloadUrl = safe;
+  downloadLink.dataset.downloadFilename = filename;
 
   if (typeof dialog.showModal === "function") {
     dialog.showModal();
@@ -2388,23 +2607,78 @@ function initializeEventListeners() {
 
   /*
    * Delegated event handling for dynamically generated content:
-   * previews and history detail buttons.
+   * image previews, download buttons, and detail buttons.
    */
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
+
+    /* Download button handling */
+
+    const downloadControl = event.target.closest(
+      "[data-download-url]"
+    );
+
+    if (downloadControl) {
+      /*
+       * Prevent the preview dialog's download anchor from
+       * navigating to the raw image URL.
+       */
+
+      event.preventDefault();
+
+      const downloadUrl =
+        downloadControl.dataset.downloadUrl;
+
+      const filename =
+        downloadControl.dataset.downloadFilename ||
+        "cloudpix-image.jpg";
+
+      await downloadImage(
+        downloadUrl,
+        filename,
+        downloadControl
+      );
+
+      return;
+    }
+
+
+    /* Image preview handling */
 
     const previewImage = event.target.closest(
       "[data-preview-url]"
     );
 
     if (previewImage) {
+      const previewUrl = previewImage.dataset.previewUrl;
+      const previewTitle =
+        previewImage.dataset.previewTitle || "Image preview";
+
+      const sourceItem = allHistoryItems.find(
+        (item) =>
+          item.filename === previewTitle ||
+          item.image_id === previewTitle
+      );
+
+      const previewFilename = sourceItem
+        ? makeDownloadFilename(
+            sourceItem,
+            "original",
+            previewUrl
+          )
+        : `cloudpix-${getImageExtension(previewUrl)}-image.${getImageExtension(previewUrl)}`;
+
       openImagePreview(
-        previewImage.dataset.previewUrl,
-        previewImage.dataset.previewTitle || "Image preview"
+        previewUrl,
+        previewTitle,
+        previewFilename
       );
 
       return;
     }
+
+
+    /* Image details handling */
 
     const detailsButton = event.target.closest(
       "[data-details-id]"
