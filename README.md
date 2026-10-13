@@ -204,12 +204,14 @@ Use `SETUP.md` for local validation and the isolated test-stack procedure. Do no
 ## API Endpoints
 
 The API base URL is obtained from the deployed SAM stack's `ApiBaseUrl` output.
+The frontend reuses the API base configured in the browser's CloudPix settings. For the currently specified deployment, that base URL is `https://45g0v7hvbh.execute-api.ap-south-1.amazonaws.com/prod`; confirm the target environment before using Delete. Do not test deletion with real images.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
 | POST | `/uploads` | Request a presigned upload URL and create an image record |
 | GET | `/history` | Retrieve recent image records |
 | GET | `/images/{image_id}` | Retrieve an image's status, metadata, and available download URLs |
+| DELETE | `/images/{image_id}` | Delete the image's S3 objects and DynamoDB record |
 
 ### Example Upload Request
 
@@ -239,9 +241,11 @@ CloudPix incorporates several basic security measures:
 
 ### Known Security Limitations
 
-The current project intentionally has no API authentication. Anyone who can reach the API can request upload URLs and read the shared image history and statuses. Keep evaluation limited to a controlled test environment and non-sensitive images; do not treat the API as suitable for public or production use.
+The current project intentionally has no API authentication. Anyone who can reach the API can request upload URLs, read shared image history/statuses, and delete an image when its ID is known. Keep evaluation limited to a controlled test environment and non-sensitive images; do not treat the API as suitable for public or production use.
 
 Before making the application publicly available, configure appropriate authentication, authorization, API throttling, and a restrictive CORS origin. Review the IAM policies and data-access model before using real or sensitive images.
+
+For the Unit 4 CSPM presentation, see [`SECURITY.md`](SECURITY.md). For a CloudWatch walkthrough of the existing image processor, see [`MONITORING.md`](MONITORING.md).
 
 ## Cost Considerations
 
@@ -263,10 +267,10 @@ Actual charges depend on the AWS Region, account eligibility, service usage, and
 - Use small test images.
 - Avoid repeated uploads when they are unnecessary.
 - Monitor resource usage and AWS billing.
-- Remove unused test images and resources.
-- Delete the CloudFormation stack after evaluation if the application is no longer needed.
+- Review unused test resources and any cleanup plan before acting.
+- Follow `SETUP.md` and get separate approval before cleaning up an isolated test stack. Do not target the deployed `cloudpix` stack without a production-specific review.
 
-Follow `SETUP.md` for the stack cleanup procedure.
+Use `SETUP.md` for isolated test-stack guidance. Stack or data cleanup requires a separate review and approval.
 
 ## Screenshots
 

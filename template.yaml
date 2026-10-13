@@ -67,7 +67,7 @@ Resources:
     Properties:
       StageName: prod
       Cors:
-        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
         AllowOrigin: !Sub "'${AllowedOrigin}'"
 
@@ -81,6 +81,10 @@ Resources:
             BucketName: !Ref ImagesBucket
         - S3ReadPolicy:
             BucketName: !Ref ImagesBucket
+        - Statement:
+            - Effect: Allow
+              Action: s3:DeleteObject
+              Resource: !Sub '${ImagesBucket.Arn}/*'
         - DynamoDBCrudPolicy:
             TableName: !Ref ImagesTable
       Events:
@@ -102,6 +106,12 @@ Resources:
             RestApiId: !Ref CloudPixApi
             Path: /images/{image_id}
             Method: get
+        DeleteImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPixApi
+            Path: /images/{image_id}
+            Method: delete
 
   ImageProcessor:
     Type: AWS::Serverless::Function

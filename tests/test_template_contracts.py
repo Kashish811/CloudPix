@@ -18,12 +18,19 @@ class TemplateContractTests(unittest.TestCase):
             with self.subTest(path=path, method=method):
                 self.assertRegex(content, rf"(?s)Path: {re.escape(path)}\s+Method: {method}")
 
-    def test_delete_route_and_method_are_not_exposed(self):
+    def test_delete_route_cors_and_scoped_permission_are_configured(self):
         content = TEMPLATE.read_text(encoding="utf-8")
-        self.assertNotRegex(content, r"(?m)^\s+Method: delete$")
+        self.assertRegex(content, r"(?s)Path: /images/\{image_id\}\s+Method: delete")
         cors = re.search(r"(?ms)^      Cors:\n(?P<body>.*?)(?=^  UploadHandler:)", content)
         self.assertIsNotNone(cors)
-        self.assertNotIn("DELETE", cors.group("body"))
+        self.assertIn("GET,POST,DELETE,OPTIONS", cors.group("body"))
+        handler = re.search(r"(?ms)^  UploadHandler:\n(?P<body>.*?)(?=^  ImageProcessor:)", content)
+        self.assertIsNotNone(handler)
+        self.assertIn("Action: s3:DeleteObject", handler.group("body"))
+        self.assertIn("Resource: !Sub '${ImagesBucket.Arn}/*'", handler.group("body"))
+        self.assertIn("S3WritePolicy", handler.group("body"))
+        self.assertIn("S3ReadPolicy", handler.group("body"))
+        self.assertNotIn("S3CrudPolicy", handler.group("body"))
 
     def test_existing_s3_cors_and_resource_naming_are_preserved(self):
         content = TEMPLATE.read_text(encoding="utf-8")
