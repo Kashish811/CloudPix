@@ -1,59 +1,1397 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5f7fb">
-  <title>CloudPix — Serverless Image Studio</title>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="CloudPix is a serverless image processing and storage platform that automatically creates optimized images and thumbnails."
+  >
+
+  <meta name="theme-color" content="#f7f7fc">
+
+  <title>CloudPix | Serverless Image Studio</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
   <link rel="stylesheet" href="styles.css">
+
+  <script src="app.js" defer></script>
 </head>
+
 <body>
+
+  <!-- APPLICATION SHELL -->
+
   <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="#" aria-label="CloudPix home"><span class="brand-mark">✦</span><span>CloudPix</span></a>
-      <div class="side-label">WORKSPACE</div>
-      <a class="nav-link active" href="#upload">▦ <span>Image studio</span></a>
-      <a class="nav-link" href="#history">◷ <span>Processing history</span></a>
-      <div class="sidebar-bottom"><span class="status-dot"></span><div><strong>Serverless workspace</strong><small>Secure cloud storage</small></div></div>
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar" id="sidebar">
+
+      <div class="brand">
+
+        <div class="brand-mark" aria-hidden="true">
+          <svg
+            viewBox="0 0 40 40"
+            width="34"
+            height="34"
+            fill="none"
+          >
+            <rect
+              x="3"
+              y="3"
+              width="34"
+              height="34"
+              rx="11"
+              fill="url(#brand-gradient)"
+            />
+
+            <path
+              d="M11 25.5L17.2 18.8L21.2 22.8L26.2 16.5L31 22.5V29H11V25.5Z"
+              fill="white"
+              fill-opacity="0.95"
+            />
+
+            <circle
+              cx="26"
+              cy="12.5"
+              r="3"
+              fill="white"
+            />
+
+            <defs>
+              <linearGradient
+                id="brand-gradient"
+                x1="3"
+                y1="3"
+                x2="37"
+                y2="37"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop stop-color="#8B7CFF"/>
+                <stop offset="1" stop-color="#5945D8"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <div class="brand-copy">
+          <h1>CloudPix</h1>
+          <span>SERVERLESS IMAGE STUDIO</span>
+        </div>
+
+      </div>
+
+
+      <!-- Main navigation -->
+
+      <div class="sidebar-section">
+
+        <p class="sidebar-label">WORKSPACE</p>
+
+        <nav class="sidebar-nav" aria-label="Main navigation">
+
+          <a
+            href="#image-studio"
+            class="nav-item active"
+            data-nav="image-studio"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <rect
+                  x="3.5"
+                  y="3.5"
+                  width="7"
+                  height="7"
+                  rx="1.5"
+                />
+                <rect
+                  x="13.5"
+                  y="3.5"
+                  width="7"
+                  height="7"
+                  rx="1.5"
+                />
+                <rect
+                  x="3.5"
+                  y="13.5"
+                  width="7"
+                  height="7"
+                  rx="1.5"
+                />
+                <rect
+                  x="13.5"
+                  y="13.5"
+                  width="7"
+                  height="7"
+                  rx="1.5"
+                />
+              </svg>
+            </span>
+
+            <span>Image Studio</span>
+
+            <span class="nav-indicator"></span>
+          </a>
+
+
+          <a
+            href="#processing-history"
+            class="nav-item"
+            data-nav="processing-history"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8.5"/>
+                <path d="M12 7v5l3.5 2"/>
+                <path d="M4.5 4.5v4h4"/>
+              </svg>
+            </span>
+
+            <span>Processing History</span>
+
+            <span class="nav-indicator"></span>
+          </a>
+
+        </nav>
+
+      </div>
+
+
+      <!-- Platform capabilities -->
+
+      <div class="sidebar-section">
+
+        <p class="sidebar-label">PLATFORM</p>
+
+        <div class="sidebar-feature">
+
+          <span class="feature-dot"></span>
+
+          <div>
+            <strong>Automatic processing</strong>
+            <small>AWS Lambda</small>
+          </div>
+
+        </div>
+
+
+        <div class="sidebar-feature">
+
+          <span class="feature-dot feature-dot-blue"></span>
+
+          <div>
+            <strong>Cloud storage</strong>
+            <small>Amazon S3</small>
+          </div>
+
+        </div>
+
+
+        <div class="sidebar-feature">
+
+          <span class="feature-dot feature-dot-green"></span>
+
+          <div>
+            <strong>Processing records</strong>
+            <small>Amazon DynamoDB</small>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Sidebar information -->
+
+      <div class="sidebar-bottom">
+
+        <div class="sidebar-info-card">
+
+          <div class="sidebar-info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3.5l8 3v5.3c0 4.3-3.1 7.4-8 8.7-4.9-1.3-8-4.4-8-8.7V6.5l8-3z"/>
+              <path d="M8.5 12l2.2 2.2 4.8-4.8"/>
+            </svg>
+          </div>
+
+          <div>
+            <strong>Serverless by design</strong>
+
+            <p>
+              Processing runs automatically in the cloud.
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="sidebar-footer">
+          <span>CloudPix</span>
+          <span>Image processing platform</span>
+        </div>
+
+      </div>
+
     </aside>
+
+
+    <!-- MAIN APPLICATION -->
+
     <main class="main-content">
+
+      <!-- TOP BAR -->
+
       <header class="topbar">
-        <div><div class="eyebrow">IMAGE WORKSPACE</div><h1>Image studio</h1><p class="subhead">Upload once. Let the cloud handle the rest.</p></div>
-        <div class="cloud-badge"><span>●</span> AWS serverless</div>
+
+        <div class="breadcrumb">
+
+          <span>Workspace</span>
+
+          <span class="breadcrumb-divider">/</span>
+
+          <strong id="breadcrumb-current">Image Studio</strong>
+
+        </div>
+
+
+        <div class="topbar-actions">
+
+          <!-- API configuration badge -->
+
+          <button
+            class="cloud-badge"
+            type="button"
+            aria-label="Configure CloudPix API endpoint"
+            title="Configure your deployed AWS API endpoint"
+          >
+
+            <span class="cloud-badge-dot"></span>
+
+            <span class="cloud-badge-label">AWS serverless</span>
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 17L17 7"/>
+              <path d="M8 7h9v9"/>
+            </svg>
+
+          </button>
+
+
+          <!-- Theme toggle -->
+
+          <button
+            class="icon-button"
+            id="theme-toggle"
+            type="button"
+            aria-label="Switch color theme"
+            title="Switch color theme"
+          >
+
+            <svg
+              class="theme-icon theme-icon-sun"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2"/>
+              <path d="M12 20v2"/>
+              <path d="M4.93 4.93l1.41 1.41"/>
+              <path d="M17.66 17.66l1.41 1.41"/>
+              <path d="M2 12h2"/>
+              <path d="M20 12h2"/>
+              <path d="M4.93 19.07l1.41-1.41"/>
+              <path d="M17.66 6.34l1.41-1.41"/>
+            </svg>
+
+            <svg
+              class="theme-icon theme-icon-moon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M20.5 14.2A8.5 8.5 0 019.8 3.5 8.6 8.6 0 101.5 14.2a8.5 8.5 0 0019-0z"/>
+            </svg>
+
+          </button>
+
+
+          <!-- Profile -->
+
+          <div
+            class="profile-avatar"
+            aria-label="CloudPix user"
+            title="CloudPix"
+          >
+            CP
+          </div>
+
+        </div>
+
       </header>
-      <section class="stats-grid" aria-label="Processing overview">
-        <article class="stat-card"><span class="stat-icon violet">▧</span><div><p>Total images</p><strong id="total-count">—</strong></div></article>
-        <article class="stat-card"><span class="stat-icon amber">◷</span><div><p>In progress</p><strong id="pending-count">—</strong></div></article>
-        <article class="stat-card"><span class="stat-icon green">✓</span><div><p>Completed</p><strong id="completed-count">—</strong></div></article>
-        <article class="stat-card"><span class="stat-icon red">!</span><div><p>Failed</p><strong id="failed-count">—</strong></div></article>
-      </section>
-      <section class="panel upload-panel" id="upload">
-        <div class="section-heading"><div><h2>Upload an image</h2><p>Originals are stored privately and processed automatically.</p></div><span class="step-chip">01 / UPLOAD</span></div>
-        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose or drop an image">
-          <div class="upload-symbol">↑</div><h3>Drop your image here</h3><p>or choose a file from your device</p>
-          <button type="button" class="button button-secondary" id="choose-btn">Choose image</button>
-          <div class="file-rules">JPG, JPEG or PNG <span>•</span> Maximum 10 MB</div>
-          <input type="file" id="file-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
-        </div>
-        <div class="selected-file" id="selected-file" hidden>
-          <img id="preview" alt="Selected image preview">
-          <div class="selected-meta"><strong id="selected-name"></strong><span id="selected-size"></span><div class="progress-track"><div id="upload-progress"></div></div><small id="upload-message">Ready to upload</small></div>
-          <button type="button" class="icon-button" id="remove-btn" aria-label="Remove selected image">×</button>
-        </div>
-        <div class="upload-actions"><p>Images are validated before upload. Processing runs asynchronously.</p><button class="button button-primary" id="upload-btn" disabled>Upload &amp; process <span>↗</span></button></div>
-      </section>
-      <section class="panel results-panel">
-        <div class="section-heading"><div><h2>Latest result</h2><p>Your original, optimized image and thumbnail.</p></div><button class="button button-ghost" id="refresh-btn">↻ Refresh</button></div>
-        <div id="latest-result" class="empty-state"><div class="empty-art">▧</div><strong>No image selected yet</strong><p>Upload an image to see its processing results here.</p></div>
-      </section>
-      <section class="panel history-panel" id="history">
-        <div class="section-heading"><div><h2>Processing history</h2><p>Recent uploads and their live processing status.</p></div><span class="step-chip">ACTIVITY</span></div>
-        <div class="table-wrap"><table><thead><tr><th>IMAGE</th><th>UPLOADED</th><th>STATUS</th><th>OUTPUTS</th></tr></thead><tbody id="history-body"><tr><td colspan="4" class="table-empty">Configure the API endpoint to load your history.</td></tr></tbody></table></div>
-      </section>
-      <footer>CloudPix <span>•</span> Serverless Image Processing &amp; Storage Platform</footer>
+
+
+      <!-- PAGE CONTENT -->
+
+      <div class="page-content">
+
+
+        <!-- PAGE INTRODUCTION -->
+
+        <section class="page-heading" id="image-studio">
+
+          <div class="page-heading-copy">
+
+            <div class="eyebrow">
+              <span class="eyebrow-line"></span>
+              SERVERLESS IMAGE WORKFLOW
+            </div>
+
+            <h2>
+              Your images,
+              <span>optimized.</span>
+            </h2>
+
+            <p>
+              Upload once. CloudPix automatically creates optimized
+              versions and thumbnails, stores your files securely,
+              and tracks every processing job.
+            </p>
+
+          </div>
+
+
+          <div class="page-heading-visual" aria-hidden="true">
+
+            <div class="visual-orbit orbit-one"></div>
+            <div class="visual-orbit orbit-two"></div>
+
+            <div class="visual-image-card visual-card-back">
+              <div class="visual-image-placeholder"></div>
+            </div>
+
+            <div class="visual-image-card visual-card-front">
+
+              <div class="visual-image-art">
+
+                <svg viewBox="0 0 120 100" fill="none">
+
+                  <rect
+                    x="8"
+                    y="8"
+                    width="104"
+                    height="84"
+                    rx="12"
+                    fill="#E8E5FF"
+                  />
+
+                  <circle
+                    cx="82"
+                    cy="31"
+                    r="10"
+                    fill="#F6C96D"
+                  />
+
+                  <path
+                    d="M15 76L42 44L59 61L76 49L105 78V83H15V76Z"
+                    fill="#9B91F7"
+                  />
+
+                  <path
+                    d="M15 84L50 59L65 71L85 56L105 75V83H15V84Z"
+                    fill="#7160E8"
+                  />
+
+                </svg>
+
+              </div>
+
+              <div class="visual-image-caption">
+                <span class="visual-status-dot"></span>
+                Image optimized
+              </div>
+
+            </div>
+
+            <div class="visual-floating-chip">
+              <span aria-hidden="true">✦</span>
+              Smart resizing
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- STATISTICS -->
+
+        <section
+          class="stats-grid"
+          aria-label="Image processing statistics"
+        >
+
+          <article class="stat-card stat-total">
+
+            <div class="stat-card-top">
+
+              <div class="stat-icon stat-icon-purple">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3.5" y="3.5" width="17" height="17" rx="3"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <path d="M4 16l5-5 3.5 3.5 2.5-2.5L20 17"/>
+                </svg>
+              </div>
+
+              <span class="stat-label">ALL IMAGES</span>
+
+            </div>
+
+            <div class="stat-value" id="total-count">—</div>
+
+            <p class="stat-description">
+              Total upload records
+            </p>
+
+            <div class="stat-decoration stat-decoration-purple"></div>
+
+          </article>
+
+
+          <article class="stat-card stat-pending">
+
+            <div class="stat-card-top">
+
+              <div class="stat-icon stat-icon-amber">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8.5"/>
+                  <path d="M12 7v5l3.5 2"/>
+                </svg>
+              </div>
+
+              <span class="stat-label">IN PROGRESS</span>
+
+            </div>
+
+            <div class="stat-value" id="pending-count">—</div>
+
+            <p class="stat-description">
+              Pending or processing
+            </p>
+
+            <div class="stat-decoration stat-decoration-amber"></div>
+
+          </article>
+
+
+          <article class="stat-card stat-completed">
+
+            <div class="stat-card-top">
+
+              <div class="stat-icon stat-icon-green">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8.5"/>
+                  <path d="M8 12l2.5 2.5L16 9"/>
+                </svg>
+              </div>
+
+              <span class="stat-label">COMPLETED</span>
+
+            </div>
+
+            <div class="stat-value" id="completed-count">—</div>
+
+            <p class="stat-description">
+              Successfully processed
+            </p>
+
+            <div class="stat-decoration stat-decoration-green"></div>
+
+          </article>
+
+
+          <article class="stat-card stat-failed">
+
+            <div class="stat-card-top">
+
+              <div class="stat-icon stat-icon-red">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8.5"/>
+                  <path d="M9 9l6 6"/>
+                  <path d="M15 9l-6 6"/>
+                </svg>
+              </div>
+
+              <span class="stat-label">FAILED</span>
+
+            </div>
+
+            <div class="stat-value" id="failed-count">—</div>
+
+            <p class="stat-description">
+              Processing errors
+            </p>
+
+            <div class="stat-decoration stat-decoration-red"></div>
+
+          </article>
+
+        </section>
+
+
+        <!-- UPLOAD SECTION -->
+
+        <section
+          class="panel upload-panel"
+          id="upload-section"
+        >
+
+          <div class="panel-heading">
+
+            <div class="panel-heading-copy">
+
+              <div class="section-kicker">
+                <span class="section-kicker-number">01</span>
+                IMAGE INGESTION
+              </div>
+
+              <h3>Upload your images</h3>
+
+              <p>
+                Select one or more images to start the processing workflow.
+              </p>
+
+            </div>
+
+
+            <div class="secure-indicator">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3.5l8 3v5.3c0 4.3-3.1 7.4-8 8.7-4.9-1.3-8-4.4-8-8.7V6.5l8-3z"/>
+                <path d="M8.5 12l2.2 2.2 4.8-4.8"/>
+              </svg>
+
+              <span>Secure upload</span>
+
+            </div>
+
+          </div>
+
+
+          <!-- Dropzone -->
+
+          <div
+            class="dropzone"
+            id="dropzone"
+            role="button"
+            tabindex="0"
+            aria-label="Choose or drop JPG and PNG images to upload"
+          >
+
+            <input
+              type="file"
+              id="file-input"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              multiple
+              hidden
+            >
+
+            <div class="dropzone-content">
+
+              <div class="upload-illustration">
+
+                <div class="upload-illustration-ring"></div>
+
+                <div class="upload-illustration-icon">
+
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 16V4"/>
+                    <path d="M7 9l5-5 5 5"/>
+                    <path d="M4 15v4a1.5 1.5 0 001.5 1.5h13A1.5 1.5 0 0020 19v-4"/>
+                  </svg>
+
+                </div>
+
+              </div>
+
+
+              <h4>Drop your images here</h4>
+
+              <p>
+                or browse files from your device
+              </p>
+
+              <button
+                class="button button-secondary"
+                id="choose-btn"
+                type="button"
+              >
+                Browse images
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h14"/>
+                  <path d="M13 6l6 6-6 6"/>
+                </svg>
+
+              </button>
+
+              <div class="file-rules">
+
+                <span>JPG</span>
+                <span class="file-rule-divider">·</span>
+                <span>JPEG</span>
+                <span class="file-rule-divider">·</span>
+                <span>PNG</span>
+                <span class="file-rule-divider">·</span>
+                <span>Maximum 10 MB per image</span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- Selected image queue -->
+
+          <div
+            class="upload-queue"
+            id="upload-queue"
+            hidden
+          >
+
+            <div class="upload-queue-heading">
+
+              <div>
+                <h4>Selected images</h4>
+
+                <p id="queue-summary">
+                  Review your images before uploading.
+                </p>
+              </div>
+
+              <button
+                class="button button-ghost"
+                id="clear-queue-btn"
+                type="button"
+              >
+                Clear selection
+              </button>
+
+            </div>
+
+            <div
+              class="upload-queue-list"
+              id="upload-queue-list"
+            ></div>
+                      <!-- Upload progress -->
+
+          <div
+            class="upload-progress-section"
+            id="upload-progress-section"
+            hidden
+          >
+
+            <div class="upload-progress-heading">
+
+              <span id="upload-progress-label">
+                Uploading images
+              </span>
+
+              <strong id="upload-progress-percent">
+                0%
+              </strong>
+
+            </div>
+
+            <div
+              class="upload-progress-track"
+              id="upload-progress-track"
+              role="progressbar"
+              aria-label="Upload progress"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+
+              <div
+                class="upload-progress-bar"
+                id="upload-progress"
+              ></div>
+
+            </div>
+
+          </div>
+
+
+          <!-- Legacy single-file preview retained for compatibility -->
+
+          <div
+            class="selected-file"
+            id="selected-file"
+            hidden
+          >
+
+            <img
+              id="selected-file-preview"
+              src=""
+              alt="Selected image preview"
+            >
+
+            <div class="selected-file-copy">
+
+              <strong id="selected-file-name">
+                Selected image
+              </strong>
+
+              <span id="selected-file-size"></span>
+
+            </div>
+
+          </div>
+
+
+          <!-- Upload actions -->
+
+          <div class="upload-actions">
+
+            <div class="upload-actions-note">
+
+              <span class="upload-actions-icon" aria-hidden="true">
+                ✦
+              </span>
+
+              <span>
+                Your images are processed automatically in the cloud.
+              </span>
+
+            </div>
+
+
+            <button
+              class="button button-primary upload-button"
+              id="upload-btn"
+              type="button"
+              disabled
+            >
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 16V4"/>
+                <path d="M7 9l5-5 5 5"/>
+                <path d="M4 15v4a1.5 1.5 0 001.5 1.5h13A1.5 1.5 0 0020 19v-4"/>
+              </svg>
+
+              <span id="upload-btn-label">
+                Start processing
+              </span>
+
+            </button>
+
+          </div>
+
+        </section>
+
+
+        <!-- LATEST PROCESSING RESULTS -->
+
+        <section
+          class="panel results-panel"
+          id="results-section"
+        >
+
+          <div class="panel-heading">
+
+            <div class="panel-heading-copy">
+
+              <div class="section-kicker">
+                <span class="section-kicker-number">02</span>
+                PROCESSING OUTPUT
+              </div>
+
+              <h3>Latest results</h3>
+
+              <p>
+                Compare your original image with its optimized outputs.
+              </p>
+
+            </div>
+
+
+            <div class="format-indicator">
+
+              <span class="format-indicator-dot"></span>
+
+              <span>JPG / PNG</span>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="latest-result"
+            class="empty-state"
+          >
+
+            <div class="empty-state-illustration">
+
+              <svg
+                viewBox="0 0 100 82"
+                fill="none"
+                aria-hidden="true"
+              >
+
+                <rect
+                  x="12"
+                  y="8"
+                  width="76"
+                  height="62"
+                  rx="8"
+                  fill="currentColor"
+                  fill-opacity="0.06"
+                  stroke="currentColor"
+                  stroke-opacity="0.18"
+                  stroke-width="1.5"
+                />
+
+                <circle
+                  cx="65"
+                  cy="26"
+                  r="7"
+                  fill="currentColor"
+                  fill-opacity="0.2"
+                />
+
+                <path
+                  d="M17 59L37 37L51 51L62 42L83 62V65H17V59Z"
+                  fill="currentColor"
+                  fill-opacity="0.18"
+                />
+
+              </svg>
+
+            </div>
+
+            <strong>No image selected yet</strong>
+
+            <p>
+              Upload an image to see its original, resized version,
+              and thumbnail here.
+            </p>
+
+          </div>
+
+        </section>
+
+
+        <!-- PROCESSING HISTORY -->
+
+        <section
+          class="panel history-panel"
+          id="processing-history"
+        >
+
+          <div class="panel-heading history-panel-heading">
+
+            <div class="panel-heading-copy">
+
+              <div class="section-kicker">
+                <span class="section-kicker-number">03</span>
+                IMAGE LIBRARY
+              </div>
+
+              <h3>Processing history</h3>
+
+              <p>
+                Browse previous uploads, review their status,
+                and download generated outputs.
+              </p>
+
+            </div>
+
+
+            <div class="history-heading-actions">
+
+              <button
+                class="button button-secondary"
+                id="refresh-btn"
+                type="button"
+                title="Refresh processing history"
+              >
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 7v5h-5"/>
+                  <path d="M4 17v-5h5"/>
+                  <path d="M5.5 9A7 7 0 0118 6l2 6"/>
+                  <path d="M18.5 15A7 7 0 016 18l-2-6"/>
+                </svg>
+
+                Refresh
+
+              </button>
+
+
+              <button
+                class="button button-secondary"
+                id="export-btn"
+                type="button"
+                title="Export visible records as CSV"
+              >
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3v12"/>
+                  <path d="M7 10l5 5 5-5"/>
+                  <path d="M4 17v3h16v-3"/>
+                </svg>
+
+                Export CSV
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- History filters -->
+
+          <div class="history-toolbar">
+
+            <label
+              class="history-search"
+              for="history-search"
+            >
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.8"/>
+                <path d="M16 16l4.5 4.5"/>
+              </svg>
+
+              <input
+                type="search"
+                id="history-search"
+                placeholder="Search images..."
+                autocomplete="off"
+              >
+
+              <kbd>/</kbd>
+
+            </label>
+
+
+            <div class="history-filters">
+
+              <label
+                class="visually-hidden"
+                for="history-filter"
+              >
+                Filter by processing status
+              </label>
+
+              <select
+                id="history-filter"
+                class="filter-select"
+              >
+
+                <option value="All">All statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Completed">Completed</option>
+                <option value="Failed">Failed</option>
+
+              </select>
+
+
+              <label
+                class="visually-hidden"
+                for="history-sort"
+              >
+                Sort image history
+              </label>
+
+              <select
+                id="history-sort"
+                class="filter-select"
+              >
+
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="name-asc">Name A–Z</option>
+                <option value="name-desc">Name Z–A</option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <!-- History summary and view controls -->
+
+          <div class="history-view-toolbar">
+
+            <p
+              id="history-summary"
+              class="history-summary"
+              aria-live="polite"
+            >
+              Loading image history...
+            </p>
+
+
+            <div
+              class="history-view-switch"
+              role="group"
+              aria-label="Choose history layout"
+            >
+
+              <button
+                class="history-view-button active"
+                id="view-table-btn"
+                type="button"
+                aria-label="Table view"
+                aria-pressed="true"
+                title="Table view"
+              >
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3.5" y="4.5" width="17" height="15" rx="2"/>
+                  <path d="M3.5 10h17"/>
+                  <path d="M9 4.5v15"/>
+                </svg>
+
+              </button>
+
+
+              <button
+                class="history-view-button"
+                id="view-grid-btn"
+                type="button"
+                aria-label="Grid view"
+                aria-pressed="false"
+                title="Grid view"
+              >
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/>
+                  <rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/>
+                  <rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/>
+                  <rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>
+                </svg>
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- Table view -->
+
+          <div
+            class="history-table-view"
+            id="history-table-view"
+          >
+
+            <div class="table-scroll">
+
+              <table class="history-table">
+
+                <thead>
+
+                  <tr>
+                    <th scope="col">IMAGE</th>
+                    <th scope="col">UPLOADED</th>
+                    <th scope="col">STATUS</th>
+                    <th scope="col">OUTPUTS</th>
+                  </tr>
+
+                </thead>
+
+                <tbody id="history-body">
+
+                  <tr>
+                    <td
+                      colspan="4"
+                      class="table-empty"
+                    >
+                      Loading image history...
+                    </td>
+                  </tr>
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+
+          <!-- Grid view -->
+
+          <div
+            class="history-grid-view"
+            id="history-grid-view"
+            hidden
+          >
+
+            <div id="history-grid"></div>
+
+          </div>
+
+        </section>
+
+
+        <!-- IMAGE DETAILS -->
+
+        <section
+          class="panel image-details-panel"
+          id="image-details-panel"
+          hidden
+        >
+
+          <div class="panel-heading">
+
+            <div class="panel-heading-copy">
+
+              <div class="section-kicker">
+                <span class="section-kicker-number">04</span>
+                IMAGE INFORMATION
+              </div>
+
+              <h3>Image details</h3>
+
+              <p>
+                Inspect the processing record and available outputs.
+              </p>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="close-details-btn"
+              type="button"
+              aria-label="Close image details"
+              title="Close details"
+            >
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12"/>
+                <path d="M18 6L6 18"/>
+              </svg>
+
+            </button>
+
+          </div>
+
+
+          <div
+            id="image-details-content"
+            class="image-details-content"
+          ></div>
+
+        </section>
+
+
+        <!-- FOOTER -->
+
+        <footer class="app-footer">
+
+          <div class="app-footer-brand">
+
+            <span class="footer-brand-mark">C</span>
+
+            <span>
+              <strong>CloudPix</strong>
+              <small>Serverless Image Studio</small>
+            </span>
+
+          </div>
+
+
+          <p>
+            Intelligent image processing, powered by AWS.
+          </p>
+
+
+          <div class="app-footer-status">
+
+            <span class="footer-status-dot"></span>
+
+            <span>Cloud-native workflow</span>
+
+          </div>
+
+        </footer>
+
+
+      </div>
+
     </main>
+
   </div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js"></script>
+
+
+  <!-- IMAGE PREVIEW DIALOG -->
+
+  <dialog
+    id="image-preview-dialog"
+    class="image-preview-dialog"
+    aria-labelledby="image-preview-title"
+  >
+
+    <div class="image-preview-shell">
+
+
+      <!-- Preview header -->
+
+      <div class="image-preview-header">
+
+        <div class="image-preview-heading">
+
+          <span class="preview-heading-icon" aria-hidden="true">
+
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M4 16l5-5 4 4 3-3 4 4"/>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <h3 id="image-preview-title">
+              Image preview
+            </h3>
+
+            <p id="image-preview-caption">
+              Preview your selected image
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <button
+          class="icon-button image-preview-close"
+          id="close-image-preview-btn"
+          type="button"
+          aria-label="Close image preview"
+          title="Close preview"
+        >
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12"/>
+            <path d="M18 6L6 18"/>
+          </svg>
+
+        </button>
+
+      </div>
+
+
+      <!-- Preview image -->
+
+      <div class="image-preview-stage">
+
+        <div class="image-preview-stage-decoration"></div>
+
+        <img
+          id="image-preview-full"
+          src=""
+          alt="Selected image preview"
+        >
+
+      </div>
+
+
+      <!-- Preview footer -->
+
+      <div class="image-preview-footer">
+
+        <div class="image-preview-file-info">
+
+          <span class="preview-file-icon" aria-hidden="true">
+
+            <svg viewBox="0 0 24 24">
+              <rect x="4" y="3" width="16" height="18" rx="2"/>
+              <path d="M8 8h8"/>
+              <path d="M8 12h8"/>
+              <path d="M8 16h5"/>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <strong>Image preview</strong>
+
+            <span>
+              Download the full-resolution file
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!--
+          IMPORTANT:
+          app.js attaches data-download-url and
+          data-download-filename when the preview opens.
+          Its delegated click handler downloads the file.
+        -->
+
+        <a
+          id="image-preview-download"
+          class="button button-primary image-preview-download"
+          href="#"
+          download="cloudpix-image.jpg"
+        >
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12"/>
+            <path d="M7 10l5 5 5-5"/>
+            <path d="M4 17v3h16v-3"/>
+          </svg>
+
+          Download image
+
+        </a>
+
+      </div>
+
+    </div>
+
+  </dialog>
+
+
+  <!-- TOAST NOTIFICATIONS -->
+
+  <div
+    class="toast"
+    id="toast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+
 </body>
 </html>
+
+          </div>
