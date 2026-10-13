@@ -1,4 +1,4 @@
-"""CloudPix upload, history, status, and download-URL API."""
+"""CloudPix upload, history, status, download-URL, and deletion API."""
 import json
 import os
 import uuid
@@ -34,7 +34,7 @@ def response(status, body):
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": ORIGIN,
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
         },
         "body": json.dumps(body, default=str),
     }
@@ -63,6 +63,8 @@ def lambda_handler(event, context):
         image_id = (event.get("pathParameters") or {}).get("image_id")
         if image_id and method == "GET":
             return get_status(image_id)
+        if image_id and method == "DELETE":
+            return delete_image(image_id)
         return response(404, {"error": "Endpoint not found"})
     except (ValueError, json.JSONDecodeError) as exc:
         return response(400, {"error": str(exc)})
@@ -183,3 +185,45 @@ def get_status(image_id):
     if not item:
         return response(404, {"error": "Image not found"})
     return response(200, decorate(item))
+
+
+def delete_image(image_id):
+    """Delete only this image's generated S3 keys, then its DynamoDB record."""
+    item = TABLE.get_item(Key={"image_id": image_id}).get("Item")
+    if not item:
+        return response(404, {"error": "Image not found"})
+
+    allowed_keys = {
+        "original_key": {
+            f"originals/{image_id}.jpg",
+            f"originals/{image_id}.png",
+        },
+        "resized_key": {
+            f"processed/{image_id}/resized.jpeg",
+            f"processed/{image_id}/resized.png",
+        },
+        "thumbnail_key": {
+            f"processed/{image_id}/thumbnail.jpeg",
+            f"processed/{image_id}/thumbnail.png",
+        },
+    }
+    keys = []
+    for field, expected in allowed_keys.items():
+        key = item.get(field)
+        if key in expected and key not in keys:
+            keys.append(key)
+
+    # A processor failure may leave generated objects before their keys are
+    # recorded. These deterministic output keys are safe to delete idempotently.
+    for extension in ("jpeg", "png"):
+        for variant in ("resized", "thumbnail"):
+            key = f"processed/{image_id}/{variant}.{extension}"
+            if key not in keys:
+                keys.append(key)
+
+    # Keep the record if an S3 deletion fails so a retry can finish cleanup.
+    for key in keys:
+        s3.delete_object(Bucket=BUCKET, Key=key)
+
+    TABLE.delete_item(Key={"image_id": image_id})
+    return response(200, {"deleted": True, "image_id": image_id})

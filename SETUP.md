@@ -1,6 +1,6 @@
 # CloudPix Setup
 
-This project has an unauthenticated API. Use only disposable images and a controlled test environment. The API history is shared by anyone who can reach its endpoint. Do not use sensitive images or present this configuration as production-ready.
+This project has an unauthenticated API. Use only disposable images and a controlled test environment. Anyone who can reach the endpoint can read shared history/statuses and delete records when they know an image ID. Do not use sensitive images or present this configuration as production-ready.
 
 ## Local-only checks
 

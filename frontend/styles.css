@@ -1984,6 +1984,50 @@ a[data-download-url] svg {
   background: var(--surface-soft);
 }
 
+.history-row-delete {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.history-delete-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--red);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.history-delete-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.history-delete-button:hover:not(:disabled),
+.history-delete-button:focus-visible {
+  border-color: color-mix(in srgb, var(--red) 25%, transparent);
+  background: color-mix(in srgb, var(--red) 9%, transparent);
+}
+
+.history-delete-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 
 /* History grid */
 
@@ -2077,6 +2121,41 @@ a[data-download-url] svg {
   gap: 8px;
 
   margin-top: 12px;
+}
+
+.history-grid-card-actions .history-grid-details-btn {
+  margin-right: auto;
+}
+
+.history-grid-details-btn {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-dark);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.history-grid-details-btn:hover,
+.history-grid-details-btn:focus-visible {
+  border-color: var(--purple-border);
+  background: var(--purple-light);
+  color: var(--purple-dark);
+}
+
+.button-danger {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+
+.button-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--red) 82%, #000);
+  background: color-mix(in srgb, var(--red) 82%, #000);
 }
 
 
@@ -2252,6 +2331,75 @@ a[data-download-url] svg {
 /* ============================================================
    20. IMAGE PREVIEW DIALOG
 ============================================================ */
+
+.delete-confirm-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+
+.delete-confirm-dialog::backdrop {
+  background: rgba(27, 25, 49, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.delete-confirm-content {
+  padding: 24px;
+}
+
+.delete-confirm-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red);
+}
+
+.delete-confirm-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.delete-confirm-content h3 {
+  margin: 16px 0 7px;
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-size: 16px;
+}
+
+.delete-confirm-content p {
+  margin: 7px 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.delete-confirm-content .delete-confirm-filename {
+  color: var(--ink-soft);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
 
 .image-preview-dialog {
   width: min(920px, calc(100vw - 32px));

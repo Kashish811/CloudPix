@@ -97,7 +97,9 @@ The included tests cover the following areas:
 | Image metadata | Output dimensions and byte sizes are returned by image processing |
 | Download URL handling | Presigned download URLs and original-size aliases are handled |
 | Upload API compatibility | Upload records, presigned URLs, status responses, and CORS headers are tested with local mocks |
+| Image deletion | S3 object cleanup and DynamoDB deletion, including missing records and S3 failures |
 | CSPM checker | Static template findings, including the absent API authorizer, are tested |
+| Frontend delete wiring | Python source-contract tests check image-ID routing, confirmation markup, error branches, and refresh calls; they do not execute JavaScript in a browser |
 
 The exact coverage depends on the tests currently present in the repository. A test listed above should be considered covered only if the corresponding test exists and passes in the current version.
 
@@ -106,6 +108,8 @@ The exact coverage depends on the tests currently present in the repository. A t
 No. The included unit tests are intended to run locally without deploying AWS resources.
 
 However, they do not reproduce every behavior of API Gateway, S3 event delivery, IAM permissions, DynamoDB, or the complete deployed application.
+
+This repository has no JavaScript test runner or browser automation dependency. The frontend delete contract checks are static source checks only. Manually verify the confirmation, keyboard operation, disabled/loading state, HTTP 404/5xx and network-error feedback, and history/statistics refresh against mocked requests in a browser or an approved isolated test stack. Do not test by deleting real images.
 
 ---
 
@@ -129,7 +133,7 @@ For a future isolated test deployment, follow the separate-output-directory proc
 
 ## 5. Prepare an isolated test deployment
 
-Follow the isolated test-stack procedure in `SETUP.md`. Do not use `sam deploy --guided` or the checked-in `samconfig.toml`; it may select the existing `cloudpix` stack. The API has no authentication, so use only a controlled test stack and non-sensitive images. Do not point the production frontend at an unreviewed test API.
+Follow the isolated test-stack procedure in `SETUP.md`. Do not use `sam deploy --guided` or the checked-in `samconfig.toml`; it may select the existing `cloudpix` stack. The API has no authentication, so use only a controlled test stack and non-sensitive images. A caller who knows an image ID can delete its record. Do not point the production frontend at an unreviewed test API.
 
 After a separately approved test deployment, identify the following stack outputs:
 
@@ -392,7 +396,21 @@ If the browser can open an image but cannot download it as a file, inspect the f
 
 ---
 
-## 10. Verify CORS
+## 10. Verify the History Delete UI
+
+The table and grid history views each have a Delete action for persisted history records. This is separate from removing a not-yet-uploaded item from the local upload queue.
+
+1. Use mocked browser requests or an approved isolated test stack containing only disposable images. Do not run this procedure against real images.
+2. Open the delete action and verify the accessible confirmation names the image and warns that its stored original and processed outputs will be removed. Cancel once and confirm no DELETE request is sent.
+3. Confirm deletion and inspect the browser Network panel. The frontend should send `DELETE /images/<image_id>` using the `image_id` from the history response and the configured API base URL.
+4. On success, verify the image disappears and the dashboard counts update. Verify the backend response and, in an approved test environment, the image record and known S3 variants are removed.
+5. Mock or safely exercise a 404, 5xx, and network failure. Verify the error toast appears and the item stays visible. Verify the action is disabled while pending and repeated clicks do not send duplicate requests.
+
+The repository does not include a JavaScript runtime, browser automation, or frontend test framework. The Python frontend contract tests inspect source wiring only; they do not prove modal accessibility, browser behavior, API Gateway CORS, or a live deletion. Complete those checks manually in a browser against mocks or an isolated stack.
+
+---
+
+## 11. Verify CORS
 
 CORS must allow the deployed frontend to make the required API requests.
 
@@ -417,7 +435,7 @@ A successful `curl` request alone does not prove that a browser request will pas
 
 ---
 
-## 11. GitHub Actions Testing
+## 12. GitHub Actions Testing
 
 If the repository's GitHub Actions workflow is configured, pushing a commit or opening a pull request that matches its triggers should start the automated checks.
 
@@ -433,7 +451,7 @@ A successful workflow demonstrates only that the configured checks passed in tha
 
 ---
 
-## 12. Test Results Record
+## 13. Test Results Record
 
 Use this table to record actual results during project evaluation.
 
@@ -456,7 +474,7 @@ Replace `To be recorded` with the result you actually observe. Do not mark a tes
 
 ---
 
-## 13. Testing Limitations
+## 14. Testing Limitations
 
 Local unit tests do not fully simulate:
 
@@ -472,7 +490,7 @@ These behaviors require AWS integration testing.
 
 The API is intentionally unauthenticated: history and image status are not isolated by user. The test suite is not proof of production readiness. Add and verify authentication, authorization, API throttling, operational controls, and a reviewed data-access model before public or production use.
 
-## 14. Cleanup After Testing
+## 15. Cleanup After Testing
 
 To minimize unnecessary AWS charges:
 

@@ -1114,6 +1114,7 @@
                     <th scope="col">UPLOADED</th>
                     <th scope="col">STATUS</th>
                     <th scope="col">OUTPUTS</th>
+                    <th scope="col"><span class="visually-hidden">ACTIONS</span></th>
                   </tr>
 
                 </thead>
@@ -1122,7 +1123,7 @@
 
                   <tr>
                     <td
-                      colspan="4"
+                      colspan="5"
                       class="table-empty"
                     >
                       Loading image history...
@@ -1242,6 +1243,48 @@
     </main>
 
   </div>
+
+
+  <!-- IMAGE DELETE CONFIRMATION -->
+
+  <dialog
+    id="delete-confirm-dialog"
+    class="delete-confirm-dialog"
+    aria-labelledby="delete-confirm-title"
+    aria-describedby="delete-confirm-filename delete-confirm-description"
+  >
+    <div class="delete-confirm-content">
+      <span class="delete-confirm-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 7h16"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M5 7l1 13h12l1-13"/>
+          <path d="M9 7V4h6v3"/>
+        </svg>
+      </span>
+
+      <h3 id="delete-confirm-title">Delete this image?</h3>
+      <p class="delete-confirm-filename" id="delete-confirm-filename"></p>
+      <p id="delete-confirm-description">
+        The image record and its stored original, resized image, and thumbnail will be removed. This cannot be undone.
+      </p>
+
+      <form method="dialog" class="delete-confirm-actions">
+        <button
+          class="button button-secondary"
+          id="delete-cancel-btn"
+          type="submit"
+          value="cancel"
+          autofocus
+        >Cancel</button>
+        <button
+          class="button button-danger"
+          id="delete-confirm-btn"
+          type="button"
+        >Delete image</button>
+      </form>
+    </div>
+  </dialog>
 
 
   <!-- IMAGE PREVIEW DIALOG -->

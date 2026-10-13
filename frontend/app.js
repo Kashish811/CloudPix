@@ -59,6 +59,10 @@ let pollTimers = new Map();
 
 let toastTimer = null;
 let refreshInProgress = false;
+let refreshRequested = false;
+let pendingDeleteImageId = null;
+const deletingImageIds = new Set();
+const deletedImageIds = new Set();
 
 
 /* =========================================================
@@ -185,11 +189,13 @@ async function api(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       data.error ||
       data.message ||
       `Request failed with status ${response.status}.`
     );
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -444,6 +450,128 @@ function downloadButton(rawUrl, filename, label, className = "") {
       ${escapeHtml(label)}
     </button>
   `;
+}
+
+
+function deleteHistoryButton(item) {
+  const imageId = String(item.image_id || "");
+  if (!imageId) {
+    return "";
+  }
+
+  const deleting = deletingImageIds.has(imageId);
+  const label = deleting
+    ? `Deleting ${item.filename || "image"}…`
+    : `Delete ${item.filename || "image"}`;
+
+  return `
+    <button
+      type="button"
+      class="history-delete-button"
+      data-delete-image="${escapeHtml(imageId)}"
+      aria-label="${escapeHtml(label)}"
+      title="${escapeHtml(label)}"
+      ${deleting ? "disabled aria-busy=\"true\"" : ""}
+    >
+      ${deleting ? "Deleting…" : `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M5 7l1 13h12l1-13"/>
+          <path d="M9 7V4h6v3"/>
+        </svg>
+        <span>Delete</span>
+      `}
+    </button>
+  `;
+}
+
+
+function requestHistoryDelete(imageId) {
+  if (!imageId || pendingDeleteImageId || deletingImageIds.has(imageId)) {
+    return;
+  }
+
+  const item = allHistoryItems.find(
+    (entry) => entry.image_id === imageId
+  );
+  if (!item) {
+    notify("This image is no longer available in history. Refresh and try again.", true);
+    return;
+  }
+
+  const dialog = $("delete-confirm-dialog");
+  if (!dialog || typeof dialog.showModal !== "function") {
+    notify("This browser does not support the delete confirmation dialog.", true);
+    return;
+  }
+
+  pendingDeleteImageId = imageId;
+  $("delete-confirm-filename").textContent = item.filename || "Untitled image";
+  dialog.showModal();
+}
+
+
+async function deleteHistoryItem(imageId) {
+  if (!imageId || deletingImageIds.has(imageId)) {
+    return;
+  }
+
+  deletingImageIds.add(imageId);
+  renderHistory();
+  $("delete-confirm-btn").disabled = true;
+  $("delete-cancel-btn").disabled = true;
+  $("delete-confirm-btn").textContent = "Deleting…";
+
+  try {
+    await api(`/images/${encodeURIComponent(imageId)}`, {
+      method: "DELETE"
+    });
+
+    deletedImageIds.add(imageId);
+    stopPolling(imageId);
+    allHistoryItems = allHistoryItems.filter(
+      (item) => item.image_id !== imageId
+    );
+
+    if (latestImageId === imageId) {
+      latestImageId = null;
+      renderLatest(null);
+    }
+
+    if (currentDetailImageId === imageId) {
+      currentDetailImageId = null;
+      $("image-details-panel").hidden = true;
+    }
+
+    updateStatistics();
+    renderHistory();
+    notify("Image and stored outputs deleted.");
+    await refreshAll();
+  } catch (error) {
+    console.error("CloudPix image deletion error:", error);
+
+    if (error.status === 404) {
+      notify("The API could not find this image. It remains in the list; refresh history before retrying.", true);
+    } else if (error.status >= 500) {
+      notify("The server could not delete this image. It remains in the list; try again later.", true);
+    } else if (!error.status) {
+      notify("Could not confirm deletion because of a network error. The image remains in this view; refresh history before retrying.", true);
+    } else {
+      notify(error.message || "The image could not be deleted. It remains in the list.", true);
+    }
+  } finally {
+    deletingImageIds.delete(imageId);
+    const dialog = $("delete-confirm-dialog");
+    if (dialog.open) {
+      dialog.close();
+    }
+    pendingDeleteImageId = null;
+    $("delete-confirm-btn").disabled = false;
+    $("delete-cancel-btn").disabled = false;
+    $("delete-confirm-btn").textContent = "Delete image";
+    renderHistory();
+  }
 }
 
 
@@ -1193,6 +1321,11 @@ function startPolling(imageId) {
         `/images/${encodeURIComponent(imageId)}`
       );
 
+      if (deletedImageIds.has(imageId)) {
+        stopPolling(imageId);
+        return;
+      }
+
       if (item && item.image_id) {
         mergeHistoryItem(item);
       }
@@ -1436,7 +1569,7 @@ function renderHistoryTable(items) {
   if (!items.length) {
     body.innerHTML = `
       <tr>
-        <td colspan="4" class="table-empty">
+        <td colspan="5" class="table-empty">
           ${
             allHistoryItems.length
               ? "No images match your search or filter."
@@ -1516,6 +1649,10 @@ function renderHistoryTable(items) {
 
         <td class="output-links">
           ${outputs(item)}
+        </td>
+
+        <td class="history-row-delete">
+          ${deleteHistoryButton(item)}
         </td>
 
       </tr>
@@ -1605,13 +1742,16 @@ function renderHistoryGrid(items) {
             ${outputs(item)}
           </div>
 
-          <button
-            class="history-grid-details-btn"
-            type="button"
-            data-details-id="${escapeHtml(item.image_id || "")}"
-          >
-            View details
-          </button>
+          <div class="history-grid-card-actions">
+            <button
+              class="history-grid-details-btn"
+              type="button"
+              data-details-id="${escapeHtml(item.image_id || "")}"
+            >
+              View details
+            </button>
+            ${deleteHistoryButton(item)}
+          </div>
 
         </div>
 
@@ -2200,6 +2340,7 @@ function exportHistoryCsv() {
 
 async function refreshAll() {
   if (refreshInProgress) {
+    refreshRequested = true;
     return;
   }
 
@@ -2215,7 +2356,7 @@ async function refreshAll() {
 
     $("history-body").innerHTML = `
       <tr>
-        <td colspan="4" class="table-empty">
+        <td colspan="5" class="table-empty">
           Click “AWS serverless” above to configure your deployed API endpoint.
         </td>
       </tr>
@@ -2265,7 +2406,7 @@ async function refreshAll() {
   } catch (error) {
     $("history-body").innerHTML = `
       <tr>
-        <td colspan="4" class="table-empty">
+        <td colspan="5" class="table-empty">
           ${escapeHtml(error.message)}
         </td>
       </tr>
@@ -2280,6 +2421,11 @@ async function refreshAll() {
     refreshInProgress = false;
 
     $("refresh-btn").disabled = false;
+
+    if (refreshRequested) {
+      refreshRequested = false;
+      void refreshAll();
+    }
   }
 }
 
@@ -2605,12 +2751,35 @@ function initializeEventListeners() {
   });
 
 
+  $("delete-confirm-dialog").addEventListener("cancel", () => {
+    pendingDeleteImageId = null;
+  });
+
+  $("delete-confirm-dialog").addEventListener("close", () => {
+    if (!deletingImageIds.has(pendingDeleteImageId)) {
+      pendingDeleteImageId = null;
+    }
+  });
+
+  $("delete-confirm-btn").addEventListener("click", () => {
+    if (pendingDeleteImageId) {
+      void deleteHistoryItem(pendingDeleteImageId);
+    }
+  });
+
+
   /*
    * Delegated event handling for dynamically generated content:
    * image previews, download buttons, and detail buttons.
    */
 
   document.addEventListener("click", async (event) => {
+
+    const deleteControl = event.target.closest("[data-delete-image]");
+    if (deleteControl) {
+      requestHistoryDelete(deleteControl.dataset.deleteImage);
+      return;
+    }
 
     /* Download button handling */
 

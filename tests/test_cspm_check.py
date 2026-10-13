@@ -101,6 +101,8 @@ class CspmCheckerTests(unittest.TestCase):
         self.assertIn("PASS:", output)
         self.assertIn("FAIL:", output)
         self.assertIn("REVIEW:", output)
+        self.assertIn("Remediation:", output)
+        self.assertIn("Add and test an API authorizer", output)
 
     def test_missing_resources_reports_each_check_as_failed(self):
         checks = analyze_template("Description: no resources\n")

@@ -22,6 +22,7 @@ class Check:
     name: str
     status: str
     detail: str
+    remediation: str = ""
 
 
 def _indent(line: str) -> int:
@@ -258,10 +259,32 @@ def analyze_template(template: str) -> list[Check]:
     return checks
 
 
+def _remediation(check: Check) -> str:
+    if check.remediation:
+        return check.remediation
+
+    if check.status == "PASS":
+        return "Keep this control in the template and verify the deployed value during an approved AWS review."
+    if check.status == "REVIEW":
+        return "Resolve the template expression or parameter, then compare it with the deployed setting using read-only checks."
+
+    guidance = {
+        "S3 public-access protections": "Configure all four S3 PublicAccessBlock settings as true; review bucket and account-level access policies.",
+        "S3 default encryption": "Configure default S3 encryption with an approved server-side encryption algorithm and verify key policy requirements if using KMS.",
+        "S3 bucket CORS": "Restrict allowed origins to the intended frontend and retain only the required browser methods and headers.",
+        "API Gateway authentication": "Add and test an API authorizer plus backend authorization before treating this unauthenticated API as protected.",
+        "API Gateway CORS": "Allow only the intended frontend origin and required methods/headers; test preflight and error responses in a browser.",
+        "DynamoDB point-in-time recovery": "Enable point-in-time recovery and confirm backup retention and restore procedures meet the project's recovery needs.",
+    }
+    return guidance.get(check.name, "Review the missing or unsafe setting and define a least-privilege remediation.")
+
+
 def render(checks: list[Check]) -> str:
     counts = {status: sum(check.status == status for check in checks) for status in VALID_STATUSES}
     lines = ["CloudPix CSPM - static template review only; live AWS settings were not inspected."]
-    lines.extend(f"{check.status}: {check.name} - {check.detail}" for check in checks)
+    for check in checks:
+        lines.append(f"{check.status}: {check.name} - {check.detail}")
+        lines.append(f"  Remediation: {_remediation(check)}")
     lines.append(f"Summary: {counts['PASS']} PASS, {counts['FAIL']} FAIL, {counts['REVIEW']} REVIEW")
     return "\n".join(lines)
 
