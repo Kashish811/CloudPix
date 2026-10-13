@@ -263,10 +263,10 @@ Actual charges depend on the AWS Region, account eligibility, service usage, and
 - Use small test images.
 - Avoid repeated uploads when they are unnecessary.
 - Monitor resource usage and AWS billing.
-- Remove unused test images and resources.
-- Delete the CloudFormation stack after evaluation if the application is no longer needed.
+- Review unused test resources and any cleanup plan before acting.
+- Follow `SETUP.md` and get separate approval before cleaning up an isolated test stack. Do not target the deployed `cloudpix` stack without a production-specific review.
 
-Follow `SETUP.md` for the stack cleanup procedure.
+Use `SETUP.md` for isolated test-stack guidance. Stack or data cleanup requires a separate review and approval.
 
 ## Screenshots
 

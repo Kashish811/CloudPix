@@ -12,7 +12,10 @@ AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
 s3 = boto3.client(
     "s3",
     region_name=AWS_REGION,
-    config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    config=Config(
+        signature_version="s3v4",
+        s3={"addressing_style": "virtual"},
+    ),
 )
 
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
@@ -77,11 +80,14 @@ def create_upload(data):
     except (TypeError, ValueError):
         raise ValueError("A valid file size is required.")
     if not filename or len(filename) > 180:
-        raise ValueError("A filename of 1â€“180 characters is required.")
+        raise ValueError("A filename of 1–180 characters is required.")
     if content_type not in ALLOWED:
         raise ValueError("Only JPG/JPEG and PNG images are supported.")
     if size < 1 or size > MAX_BYTES:
-        raise ValueError(f"Image must be between 1 byte and {MAX_BYTES // (1024 * 1024)} MB.")
+        raise ValueError(
+            f"Image must be between 1 byte and "
+            f"{MAX_BYTES // (1024 * 1024)} MB."
+        )
 
     image_id = str(uuid.uuid4())
     key = f"originals/{image_id}{ALLOWED[content_type]}"
@@ -98,7 +104,11 @@ def create_upload(data):
     try:
         upload_url = s3.generate_presigned_url(
             "put_object",
-            Params={"Bucket": BUCKET, "Key": key, "ContentType": content_type},
+            Params={
+                "Bucket": BUCKET,
+                "Key": key,
+                "ContentType": content_type,
+            },
             ExpiresIn=300,
         )
     except Exception:
@@ -106,7 +116,10 @@ def create_upload(data):
             Key={"image_id": image_id},
             UpdateExpression="SET #s = :failed, error_message = :msg",
             ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":failed": "Failed", ":msg": "Could not create upload URL"},
+            ExpressionAttributeValues={
+                ":failed": "Failed",
+                ":msg": "Could not create upload URL",
+            },
         )
         raise
     return response(201, {
@@ -124,21 +137,37 @@ def sign_key(key, download_name=None):
         return None
     params = {"Bucket": BUCKET, "Key": key}
     if download_name:
-        safe_name = str(download_name).replace('"', "").replace("\r", "").replace("\n", "")
-        params["ResponseContentDisposition"] = f'attachment; filename="{safe_name}"'
-    return s3.generate_presigned_url("get_object", Params=params, ExpiresIn=URL_EXPIRY)
+        safe_name = (
+            str(download_name)
+            .replace('"', "")
+            .replace("\r", "")
+            .replace("\n", "")
+        )
+        params["ResponseContentDisposition"] = (
+            f'attachment; filename="{safe_name}"'
+        )
+    return s3.generate_presigned_url(
+        "get_object", Params=params, ExpiresIn=URL_EXPIRY
+    )
 
 
 def decorate(item):
     """Return display metadata and fresh, short-lived private-object URLs."""
     result = dict(item)
     base_name = os.path.splitext(str(result.get("filename") or "image"))[0]
-    for field, label in (("original_key", "original"), ("resized_key", "resized"), ("thumbnail_key", "thumbnail")):
+    for field, label in (
+        ("original_key", "original"),
+        ("resized_key", "resized"),
+        ("thumbnail_key", "thumbnail"),
+    ):
         result[field.replace("_key", "_url")] = sign_key(
-            result.get(field), f"{base_name}-{label}{os.path.splitext(result.get(field) or '')[1]}"
+            result.get(field),
+            f"{base_name}-{label}"
+            f"{os.path.splitext(result.get(field) or '')[1]}",
         )
-    # Consistent aliases are useful for UI clients and future API consumers.
-    result["original_size_bytes"] = result.get("original_size_bytes", result.get("size_bytes"))
+    result["original_size_bytes"] = result.get(
+        "original_size_bytes", result.get("size_bytes")
+    )
     return result
 
 

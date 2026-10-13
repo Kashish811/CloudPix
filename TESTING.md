@@ -123,13 +123,7 @@ A successful validation indicates that SAM can validate the template. It does no
 
 ### Build the Application
 
-```bash
-sam build
-```
-
-This prepares the application and its dependencies for deployment.
-
-The build process does not, by itself, create the live application in AWS.
+For a future isolated test deployment, follow the separate-output-directory procedure in `SETUP.md`. Do not use the default `sam build` command in this checkout if it could overwrite an existing `.aws-sam` build directory.
 
 ---
 
